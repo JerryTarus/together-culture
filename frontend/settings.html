@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Settings - Together Culture</title>
+    <link rel="icon" type="image/png" href="/tfav.png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="./css/style.css" />
+  </head>
+  <body class="bg-gray-100">
+    <div class="flex h-screen">
+      <aside class="w-64 bg-white shadow-md flex flex-col">
+        <div class="p-6">
+          <h1 class="text-2xl font-bold brand-text-dark">CRM Portal</h1>
+        </div>
+        <nav id="sidebar-nav" class="flex-grow px-4"></nav>
+        <div class="p-4">
+          <button
+            id="logout-button"
+            class="w-full text-left p-3 text-gray-600 hover:bg-gray-200 rounded-lg"
+          >
+            Logout
+          </button>
+        </div>
+      </aside>
+
+      <main class="flex-1 p-8 overflow-y-auto">
+        <h2 class="text-3xl font-bold text-gray-800 mb-8">Account Settings</h2>
+
+        <!-- Profile Information -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+          <h3 class="text-xl font-semibold mb-4">Profile Information</h3>
+          <form id="profile-form">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                <input
+                  type="text"
+                  id="profile-name"
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  required
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                <input
+                  type="email"
+                  id="profile-email"
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  required
+                />
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Bio</label>
+                <textarea
+                  id="profile-bio"
+                  rows="3"
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  placeholder="Tell us about yourself..."
+                ></textarea>
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Skills (comma-separated)</label>
+                <input
+                  type="text"
+                  id="profile-skills"
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  placeholder="e.g., JavaScript, Design, Photography"
+                />
+              </div>
+            </div>
+            <div class="mt-6">
+              <button
+                type="submit"
+                class="bg-brand-primary text-white px-6 py-2 rounded-lg hover:bg-opacity-90"
+              >
+                Save Profile
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Change Password -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+          <h3 class="text-xl font-semibold mb-4">Change Password</h3>
+          <form id="password-form">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+                <div class="relative">
+                  <input
+                    type="password"
+                    id="current-password"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    required
+                  />
+                  <button
+                    type="button"
+                    class="absolute right-3 top-2 text-gray-400 hover:text-gray-600"
+                    onclick="togglePassword('current-password')"
+                  >
+                    👁️
+                  </button>
+                </div>
+              </div>
+              <div></div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                <div class="relative">
+                  <input
+                    type="password"
+                    id="new-password"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    required
+                  />
+                  <button
+                    type="button"
+                    class="absolute right-3 top-2 text-gray-400 hover:text-gray-600"
+                    onclick="togglePassword('new-password')"
+                  >
+                    👁️
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
+                <div class="relative">
+                  <input
+                    type="password"
+                    id="confirm-password"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    required
+                  />
+                  <button
+                    type="button"
+                    class="absolute right-3 top-2 text-gray-400 hover:text-gray-600"
+                    onclick="togglePassword('confirm-password')"
+                  >
+                    👁️
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="mt-6">
+              <button
+                type="submit"
+                class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700"
+              >
+                Change Password
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Account Information -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+          <h3 class="text-xl font-semibold mb-4">Account Information</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Account Role</label>
+              <div class="px-3 py-2 bg-gray-100 rounded-lg">
+                <span id="account-role" class="capitalize"></span>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Member Since</label>
+              <div class="px-3 py-2 bg-gray-100 rounded-lg">
+                <span id="member-since"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="./js/config.js"></script>
+    <script src="./js/settings.js"></script>
+  </body>
+</html>

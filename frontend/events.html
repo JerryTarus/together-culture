@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Events - Together Culture</title>
+    <link rel="icon" type="image/png" href="/tfav.png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="./css/style.css" />
+  </head>
+  <body class="bg-gray-100">
+    <div class="flex h-screen">
+      <aside class="w-64 bg-white shadow-md flex flex-col">
+        <div class="p-6">
+          <h1 class="text-2xl font-bold brand-text-dark">CRM Portal</h1>
+        </div>
+        <nav id="sidebar-nav" class="flex-grow px-4"></nav>
+        <div class="p-4">
+          <button
+            id="logout-button"
+            class="w-full text-left p-3 text-gray-600 hover:bg-gray-200 rounded-lg"
+          >
+            Logout
+          </button>
+        </div>
+      </aside>
+
+      <main class="flex-1 p-8 overflow-y-auto">
+        <div class="flex justify-between items-center mb-8">
+          <h2 class="text-3xl font-bold text-gray-800">Events</h2>
+          <button
+            id="create-event-button"
+            class="hidden bg-brand-primary text-white px-6 py-2 rounded-lg hover:bg-opacity-90"
+          >
+            Create Event
+          </button>
+        </div>
+
+        <!-- Events List -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+          <h3 class="text-xl font-semibold mb-4">Upcoming Events</h3>
+          <div id="events-list" class="space-y-4">
+            <div class="text-gray-400">Loading events...</div>
+          </div>
+        </div>
+
+        <!-- Visit Tracking Section (Admin Only) -->
+        <div id="visit-tracking-section" class="hidden bg-white rounded-lg shadow-sm p-6">
+          <h3 class="text-xl font-semibold mb-4">Visit Tracking</h3>
+          <div id="visit-tracking-content">
+            <p class="text-gray-500">Select an event above to view and manage visits.</p>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Create Event Modal -->
+    <div id="create-event-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+        <h3 class="text-xl font-bold mb-4">Create New Event</h3>
+        <form id="create-event-form">
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Title</label>
+            <input
+              type="text"
+              id="event-title"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              required
+            />
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+            <textarea
+              id="event-description"
+              rows="3"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              required
+            ></textarea>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Date</label>
+            <input
+              type="date"
+              id="event-date"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              required
+            />
+          </div>
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
+            <input
+              type="text"
+              id="event-location"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              required
+            />
+          </div>
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Capacity</label>
+            <input
+              type="number"
+              id="event-capacity"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              min="1"
+              placeholder="Enter event capacity (leave blank for unlimited)"
+            />
+          </div>
+          <div class="flex gap-4">
+            <button
+              type="button"
+              id="cancel-create-event"
+              class="flex-1 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="flex-1 bg-brand-primary text-white px-4 py-2 rounded-lg hover:bg-opacity-90"
+            >
+              Create Event
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Visit Recording Modal -->
+    <div id="visit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+        <h3 class="text-xl font-bold mb-4">Record Visit</h3>
+        <form id="visit-form">
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Member</label>
+            <select
+              id="visit-member"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              required
+            >
+              <option value="">Select a member...</option>
+            </select>
+          </div>
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Visit Date</label>
+            <input
+              type="date"
+              id="visit-date"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              required
+            />
+          </div>
+          <div class="flex gap-4">
+            <button
+              type="button"
+              id="cancel-visit"
+              class="flex-1 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="flex-1 bg-brand-primary text-white px-4 py-2 rounded-lg hover:bg-opacity-90"
+            >
+              Record Visit
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="./js/config.js"></script>
+    <script src="./js/events.js"></script>
+  </body>
+</html>

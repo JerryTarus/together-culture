@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Resources - Together Culture</title>
+    <link rel="icon" type="image/png" href="/tfav.png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="./css/style.css" />
+  </head>
+  <body class="bg-gray-100">
+    <div class="flex h-screen">
+      <aside class="w-64 bg-white shadow-md flex flex-col">
+        <div class="p-6">
+          <h1 class="text-2xl font-bold brand-text-dark">CRM Portal</h1>
+        </div>
+        <nav id="sidebar-nav" class="flex-grow px-4"></nav>
+        <div class="p-4">
+          <button
+            id="logout-button"
+            class="w-full text-left p-3 text-gray-600 hover:bg-gray-200 rounded-lg"
+          >
+            Logout
+          </button>
+        </div>
+      </aside>
+
+      <main class="flex-1 p-8 overflow-y-auto">
+        <h2 class="text-3xl font-bold text-gray-800">Resource Library</h2>
+
+        <div
+          id="upload-form-container"
+          class="hidden mt-6 bg-white p-6 rounded-lg shadow-sm"
+        >
+          <h3 class="text-xl font-semibold mb-4">Upload New Resource</h3>
+          <form id="upload-form">
+            <div class="space-y-4">
+              <div>
+                <label
+                  for="title"
+                  class="block text-sm font-medium text-gray-700"
+                  >Resource Title</label
+                >
+                <input
+                  type="text"
+                  id="title"
+                  required
+                  class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"
+                />
+              </div>
+              <div>
+                <label
+                  for="resourceFile"
+                  class="block text-sm font-medium text-gray-700"
+                  >File</label
+                >
+                <input
+                  type="file"
+                  id="resourceFile"
+                  required
+                  class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+              </div>
+            </div>
+            <div class="mt-6 flex justify-end">
+              <button
+                type="submit"
+                class="bg-brand-primary text-white font-bold py-2 px-4 rounded-lg"
+              >
+                Upload
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="mt-8 flex flex-col md:flex-row gap-6 items-center justify-between">
+          <div class="w-full md:w-1/2">
+            <input id="resource-search" type="text" placeholder="Search resources..." class="w-full border rounded px-3 py-2" />
+          </div>
+          <div id="toast" class="hidden bg-green-100 text-green-800 px-4 py-2 rounded shadow"></div>
+        </div>
+        <div id="drag-upload" class="mt-6 p-6 border-2 border-dashed border-blue-300 rounded-lg flex flex-col items-center justify-center text-blue-600 cursor-pointer hover:bg-blue-50 transition">
+          <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12"/></svg>
+          <span class="font-semibold">Drag & drop files here, or click to select</span>
+        </div>
+        <div id="resources-list" class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <p>Loading resources...</p>
+        </div>
+      </main>
+    </div>
+    <script src="./js/config.js"></script>
+    <script src="./js/resources.js"></script>
+  </body>
+</html>

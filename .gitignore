@@ -1,0 +1,263 @@
+# =============================================================================
+# Together Culture CRM - Git Ignore File
+# =============================================================================
+
+# ===== ENVIRONMENT & CONFIGURATION =====
+# Environment variables and sensitive configuration
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.staging
+config.local.js
+secrets.json
+
+# ===== NODE.JS & NPM =====
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json.backup
+yarn.lock.backup
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# ===== DATABASE =====
+# Database files and backups
+*.db
+*.sqlite
+*.sqlite3
+*.mdb
+*.accdb
+database_backup_*
+db_dump_*
+mysql_dump_*
+*.sql.backup
+
+# ===== FILE UPLOADS & MEDIA =====
+# User uploaded files
+backend/uploads/*
+!backend/uploads/.gitkeep
+uploads/*
+!uploads/.gitkeep
+media/*
+!media/.gitkeep
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Temporary upload files
+*.tmp
+*.temp
+temp_*
+tmp_*
+
+# ===== BUILD & DISTRIBUTION =====
+# Build outputs
+build/
+dist/
+out/
+.next/
+.nuxt/
+.cache/
+.parcel-cache/
+
+# Webpack
+.webpack/
+
+# ===== DEVELOPMENT TOOLS =====
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+
+# WebStorm/IntelliJ
+.idea/
+*.swp
+*.swo
+*~
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Atom
+.atom/
+
+# ===== OPERATING SYSTEM =====
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ===== SECURITY & KEYS =====
+# SSL certificates and keys
+*.pem
+*.key
+*.crt
+*.csr
+*.cer
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# SSH keys
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+known_hosts
+
+# API keys and tokens
+api_keys.txt
+tokens.txt
+credentials.json
+
+# ===== TESTING =====
+# Test results
+test-results/
+coverage/
+*.coverage
+.nyc_output/
+.coverage/
+htmlcov/
+.tox/
+.pytest_cache/
+.jest/
+
+# ===== DOCUMENTATION =====
+# Generated documentation
+docs/_build/
+site/
+.jekyll-cache/
+.jekyll-metadata
+
+# ===== MISCELLANEOUS =====
+# Backup files
+*.backup
+*.bak
+*.swp
+*.swo
+*~
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Package files
+*.tgz
+*.tar
+
+# Lock files (except package-lock.json for consistency)
+yarn.lock
+
+# Error logs and debug files
+error.log
+debug.log
+access.log
+
+# Performance monitoring
+.flamegraph/
+profile_*
+
+# ===== APPLICATION SPECIFIC =====
+# CRM specific files
+admin_exports/
+member_exports/
+report_cache/
+email_templates_cache/
+session_store/
+
+# Generated user content that shouldn't be versioned
+user_generated_content/
+member_photos/
+event_photos/
+
+# Temporary processing files
+processing_*
+queue_*
+batch_*
+
+# ===== FRONTEND SPECIFIC =====
+# Compiled CSS/JS (if using build tools)
+*.min.css
+*.min.js
+compiled/
+assets/compiled/
+
+# Source maps
+*.map
+
+# CSS preprocessor cache
+.sass-cache/
+.less-cache/
+
+# ===== KEEP FILES =====
+# Keep empty directories with .gitkeep files
+!.gitkeep
+!**/.gitkeep

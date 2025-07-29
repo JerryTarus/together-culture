@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Member Dashboard - Together Culture</title>
+    <link rel="icon" type="image/png" href="/tfav.png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;700;900&family=Noto+Sans:wght@400;500;700;900">
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+<body class="bg-gray-50">
+
+    <div id="loader" class="flex justify-center items-center h-screen">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-brand-primary"></div>
+    </div>
+
+    <div id="root" class="hidden">
+        <!-- Notification area -->
+        <div id="notification-container" class="fixed top-6 right-6 z-50"></div>
+        
+        <!-- Header -->
+        <header class="bg-white shadow-sm">
+            <div class="main-container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center">
+                        <span class="font-bold text-xl brand-text-dark">Together Culture</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span id="user-name" class="text-sm font-medium text-gray-600"></span>
+                        <button id="logout-button" class="text-sm font-medium text-gray-500 hover:text-brand-primary">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Pending Approval Banner -->
+        <div id="pending-banner" class="hidden bg-yellow-50 border-l-4 border-yellow-400 p-4">
+            <div class="main-container mx-auto">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-yellow-700">
+                            <strong>Account Pending Approval:</strong> Your account is currently being reviewed by our admin team. You'll have full access once approved.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <main class="py-10">
+            <div class="main-container mx-auto px-4 sm:px-6 lg:px-8">
+                <h1 class="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                    <svg class="w-8 h-8 text-brand-primary inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Welcome to your Dashboard
+                </h1>
+                <div class="text-gray-500 mb-6">Stay updated on your activities and community events.</div>
+                
+                <!-- Dashboard Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-lg shadow-sm flex flex-col justify-center items-center min-h-[120px]">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Events Attended</h3>
+                        <p id="events-attended" class="text-3xl font-bold text-brand-primary">0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm flex flex-col justify-center items-center min-h-[120px]">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Messages</h3>
+                        <p id="messages-count" class="text-3xl font-bold text-brand-primary">0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm flex flex-col justify-center items-center min-h-[120px]">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Resources</h3>
+                        <p id="resources-count" class="text-3xl font-bold text-brand-primary">0</p>
+                    </div>
+                </div>
+
+                <!-- Main Content Grid -->
+                <div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Main column -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <!-- Upcoming Events -->
+                        <div class="bg-white p-6 rounded-lg shadow transition-transform hover:scale-105 hover:shadow-lg">
+                            <h2 class="text-lg font-medium text-gray-900 flex items-center gap-2 mb-4">
+                                <svg class="w-5 h-5 text-brand-primary" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Upcoming Events
+                            </h2>
+                            <div id="upcoming-events" class="space-y-4">
+                                <div class="text-gray-500">Loading events...</div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity -->
+                        <div class="bg-white p-6 rounded-lg shadow transition-transform hover:scale-105 hover:shadow-lg">
+                            <h2 class="text-lg font-medium text-gray-900 flex items-center gap-2 mb-4">
+                                <svg class="w-5 h-5 text-brand-primary" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2a4 4 0 018 0v2m-4 4a4 4 0 100-8 4 4 0 000 8z"/></svg>
+                                Recent Activity
+                            </h2>
+                            <div id="recent-activity" class="space-y-3">
+                                <div class="text-gray-500">No recent activity to display.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar -->
+                    <div class="space-y-6">
+                        <!-- Profile Card -->
+                        <div class="bg-white p-6 rounded-lg shadow transition-transform hover:scale-105 hover:shadow-lg">
+                            <h2 class="text-lg font-medium text-gray-900 flex items-center gap-2 mb-4">
+                                <svg class="w-5 h-5 text-brand-primary" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 15c2.21 0 4.314.358 6.121 1.004M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                Your Profile
+                            </h2>
+                            <div class="space-y-3 text-sm text-gray-600">
+                                <div><strong>Name:</strong> <span id="profile-name"></span></div>
+                                <div><strong>Email:</strong> <span id="profile-email"></span></div>
+                                <div><strong>Member Since:</strong> <span id="profile-joined"></span></div>
+                                <div><strong>Status:</strong> <span id="profile-status" class="capitalize font-semibold"></span></div>
+                            </div>
+                            <div class="mt-4 space-y-2">
+                                <a href="/settings.html" class="block w-full bg-brand-primary text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-90 text-center">Edit Profile</a>
+                                <a href="/events.html" class="block w-full bg-gray-100 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-200 text-center">View Events</a>
+                                <a href="/messages.html" class="block w-full bg-gray-100 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-200 text-center">Messages</a>
+                                <a href="/resources.html" class="block w-full bg-gray-100 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-200 text-center">Resources</a>
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="bg-white p-6 rounded-lg shadow transition-transform hover:scale-105 hover:shadow-lg">
+                            <h2 class="text-lg font-medium text-gray-900 flex items-center gap-2 mb-4">
+                                <svg class="w-5 h-5 text-brand-primary" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                Quick Actions
+                            </h2>
+                            <div class="space-y-2">
+                                <button id="refresh-btn" class="w-full text-left p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                                    <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                    Refresh Dashboard
+                                </button>
+                                <button id="help-btn" class="w-full text-left p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                                    <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    Get Help
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="./js/config.js"></script>
+    <script src="./js/member.js"></script>
+</body>
+</html>

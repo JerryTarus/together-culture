@@ -1,0 +1,30 @@
+
+:root {
+  /* Brand Colors inspired by vibrant, cultural tones */
+  --brand-beige: #F5F5DC;      /* Warm, inviting background */
+  --brand-brown: #A0522D;      /* Earthy, grounded text & elements */
+  --brand-dark: #3D2B1F;       /* Minimalist contrast for headings */
+  --brand-primary: #D2691E;    /* Vibrant accent for CTAs (Chocolate) */
+  --text-primary: #111418;     /* Standard text */
+  --text-secondary: #60748a;   /* Lighter text for descriptions */
+}
+
+body {
+  background-color: white;
+  font-family: 'Inter', "Noto Sans", sans-serif;
+}
+
+.bg-brand-primary { background-color: var(--brand-primary); }
+.bg-brand-primary:hover { filter: brightness(1.1); }
+.bg-brand-beige { background-color: var(--brand-beige); }
+
+.brand-text-dark { color: var(--brand-dark); }
+.brand-text-primary { color: var(--brand-primary); }
+
+.main-container {
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+}

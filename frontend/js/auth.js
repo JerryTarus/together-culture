@@ -1,5 +1,9 @@
 // frontend/js/auth.js
+
 document.addEventListener('DOMContentLoaded', () => {
+    // SECURITY FIX: Clear any credentials from URL parameters immediately
+    clearCredentialsFromURL();
+
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', handleLogin);
@@ -15,11 +19,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// SECURITY FIX: Function to clear credentials from URL parameters
+function clearCredentialsFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasCredentials = urlParams.has('email') || urlParams.has('password') || urlParams.has('username');
+
+    if (hasCredentials) {
+        // Log security warning
+        console.warn('SECURITY WARNING: Credentials detected in URL parameters. Clearing immediately.');
+
+        // Clear the URL without refreshing the page
+        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+
+        // Show security warning to user
+        showMessage('Security Notice: Login credentials should not be passed in URL. Please enter credentials manually.', 'warning', 5000);
+    }
+}
+
 function handleTogglePassword() {
     const passwordInput = document.getElementById('password');
     const eyeIcon = document.getElementById('eye-icon');
     const eyeOffIcon = document.getElementById('eye-off-icon');
+
     if (!passwordInput) return;
+
     if (passwordInput.type === 'password') {
         passwordInput.type = 'text';
         if (eyeIcon) eyeIcon.classList.add('hidden');
@@ -34,56 +58,53 @@ function handleTogglePassword() {
 async function handleLogin(e) {
     e.preventDefault();
     console.log('Login form submitted'); // Debug log
-    
+
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const rememberMe = document.getElementById('remember-me').checked;
-    
     const loginButton = document.getElementById('login-button');
     const messageDiv = document.getElementById('error-message');
-    
+
     // Validate inputs
     if (!email || !password) {
         showErrorMessage('Please enter both email and password.');
         return;
     }
-    
+
     loginButton.disabled = true;
     loginButton.textContent = 'Logging in...';
     messageDiv.classList.add('hidden');
-    
+
     try {
         // Check if CONFIG is available
         if (typeof CONFIG === 'undefined') {
             throw new Error('Configuration not loaded. Please refresh the page.');
         }
-        
+
         const apiUrl = CONFIG.apiUrl('api/auth/login');
         console.log('Making request to:', apiUrl); // Debug log
-        
+
         const res = await fetch(apiUrl, {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
             },
             credentials: 'include', // Include cookies
             body: JSON.stringify({ email, password, rememberMe }),
         });
-        
+
         console.log('Response status:', res.status); // Debug log
-        
+
         if (!res.ok) {
             let errorMessage = 'Login failed. Please try again.';
-            
             try {
                 const data = await res.json();
                 console.log('Error response data:', data); // Debug log
-                
                 if (data.message) {
                     errorMessage = data.message;
                 }
-                
+
                 // Handle specific status errors
                 if (data.errors && data.errors.status) {
                     if (data.errors.status === 'pending') {
@@ -100,34 +121,64 @@ async function handleLogin(e) {
                 console.error('Error parsing response:', parseError);
                 showErrorMessage('Server error. Please try again later.');
             }
-            
             loginButton.disabled = false;
             loginButton.textContent = 'Log In';
             return;
         }
-        
+
+        // --- SUCCESS PATH STARTS HERE ---
         const data = await res.json();
-        console.log('Login successful:', data); // Debug log
-        
+        console.log('Login successful, full response data:', data); // Debug log
+
         // Show success message
-        showMessage('Login successful! Redirecting...', 'success', 2000);
-        
-        // Redirect based on role
+        showMessage('Login successful! Redirecting...', 'success', 1500); // Show for 1.5 seconds
+
+        // --- CRITICAL FIX: REDIRECT BASED ON USER ROLE ---
+        // Use setTimeout to allow the message to be seen briefly before redirecting
         setTimeout(() => {
-            const redirectUrl = data.user.role === 'admin' ? '/admin_dashboard.html' : '/member_dashboard.html';
-            console.log('Redirecting to:', redirectUrl);
+            // Determine the redirect URL based on user role
+            let redirectUrl = '/'; // Default fallback
+
+            if (data.user && data.user.role === 'admin') {
+                console.log("Redirecting admin to admin dashboard...");
+                redirectUrl = '/admin_dashboard.html'; // Use absolute path
+            } else if (data.user) { // Assuming default redirect for other roles (like 'member')
+                console.log("Redirecting user to member dashboard...");
+                redirectUrl = '/member_dashboard.html'; // Use absolute path
+            } else {
+                // Safety check in case data.user is missing unexpectedly
+                console.error("Unexpected response structure, missing user data:", data);
+                // Even with unexpected data, try a default redirect to prevent getting stuck
+                // You might want to show a persistent error message here instead
+            }
+
+            console.log('Performing redirect to:', redirectUrl);
+            // Perform the actual redirect using the absolute path
             window.location.href = redirectUrl;
-        }, 1000);
+        }, 1600); // Redirect slightly after the message appears (1.6 seconds)
+        // --- CRITICAL FIX: REDIRECT ENDS ---
+
+        // --- ROLE-BASED REDIRECT LOGIC ---
+        // Redirect user based on their role
+        if (data.user && data.user.role === 'admin') {
+            setTimeout(() => {
+                window.location.href = '/admin_dashboard.html';
+            }, 1600);
+        } else {
+            setTimeout(() => {
+                window.location.href = '/member_dashboard.html';
+            }, 1600);
+        }
+        // --- END ROLE-BASED REDIRECT LOGIC ---
+
+        // IMPORTANT: Do not put any more code here that relies on the page state,
+        // as the redirect initiated by setTimeout will take over.
+        // The return statement is generally safe but often redundant after a redirect setup.
+        return;
 
     } catch (error) {
-        console.error('Login error:', error); // Debug log
-        
-        let errorMessage = 'Network error. Please check your connection and try again.';
-        if (error.message) {
-            errorMessage = error.message;
-        }
-        
-        showErrorMessage(errorMessage);
+        console.error('Login error:', error);
+        showErrorMessage(error.message || 'Network error. Please try again.');
         loginButton.disabled = false;
         loginButton.textContent = 'Log In';
     }
@@ -149,19 +200,19 @@ function showErrorMessage(message) {
 async function handleRegister(e) {
     e.preventDefault();
     console.log('Register form submitted'); // Debug log
-    
+
     const registerButton = document.getElementById('register-button');
     const messageDiv = document.getElementById('message-div');
-    
+
     registerButton.disabled = true;
     registerButton.textContent = 'Creating Account...';
     if (messageDiv) messageDiv.classList.add('hidden');
-    
+
     const full_name = document.getElementById('full_name').value;
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const confirm_password = document.getElementById('confirm_password').value;
-    
+
     if (password !== confirm_password) {
         showMessage('Passwords do not match.', 'error');
         registerButton.disabled = false;
@@ -169,47 +220,49 @@ async function handleRegister(e) {
         document.getElementById('confirm_password').focus();
         return;
     }
-    
+
     try {
         // Check if CONFIG is available
         if (typeof CONFIG === 'undefined') {
             throw new Error('Configuration not loaded. Please refresh the page.');
         }
-        
+
         const res = await fetch(CONFIG.apiUrl('api/auth/register'), {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
             },
             credentials: 'include', // Include cookies
             body: JSON.stringify({ full_name, email, password }),
         });
-        
+
         const data = await res.json();
-        
+
         if (!res.ok) {
             let errorMsg = data.message || 'Failed to register.';
             if (data.errors) {
-                errorMsg += '\n' + Object.entries(data.errors)
+                errorMsg += ' ' + Object.entries(data.errors)
                     .filter(([k, v]) => v)
                     .map(([k, v]) => `${k}: ${v}`)
-                    .join('\n');
+                    .join('');
             }
+
             // If message is about pending approval, show as yellow toast
             if (data.message && data.message.toLowerCase().includes('pending')) {
                 showMessage(data.message, 'warning', 5000);
             } else {
                 showMessage(errorMsg, 'error', 5000);
             }
+
             registerButton.disabled = false;
             registerButton.textContent = 'Create Account';
             return;
         }
-        
+
         showMessage(data.message, 'success', 5000);
-        setTimeout(() => { window.location.href = '/login.html'; }, 2500);
-        
+        setTimeout(() => { window.location.href = './login.html'; }, 2500);
+
     } catch (error) {
         console.error('Registration error:', error);
         showMessage(error.message || 'Network error. Please try again.', 'error');
@@ -219,39 +272,38 @@ async function handleRegister(e) {
 }
 
 function showMessage(message, type = 'info', duration = 3000) {
-    // type: 'success', 'error', 'warning', 'info'
-    console.log('Showing message:', message, type); // Debug log
-
-    let container = document.getElementById('notification-container');
+    // Create or get the toast container
+    let container = document.getElementById('toast-container');
     if (!container) {
         container = document.createElement('div');
-        container.id = 'notification-container';
-        container.style.position = 'fixed';
-        container.style.top = '1.5rem';
-        container.style.right = '1.5rem';
-        container.style.zIndex = '9999';
-        container.style.display = 'flex';
-        container.style.flexDirection = 'column';
-        container.style.alignItems = 'flex-end';
+        container.id = 'toast-container';
+        container.className = 'fixed top-4 right-4 z-50 flex flex-col items-end space-y-2';
         document.body.appendChild(container);
     }
-    
+
+    // Create the toast element
     const toast = document.createElement('div');
     let icon = '';
-    if (type === 'warning') {
-        icon = '<svg class="w-5 h-5 text-yellow-400 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z"/></svg>';
-    } else if (type === 'success') {
+
+    if (type === 'success') {
         icon = '<svg class="w-5 h-5 text-green-300 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>';
     } else if (type === 'error') {
         icon = '<svg class="w-5 h-5 text-red-300 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>';
     }
-    
-    toast.className = `mb-2 px-6 py-3 rounded shadow-lg text-white font-medium flex items-center gap-2 animate-fade-in ${type === 'error' ? 'bg-red-600' : type === 'success' ? 'bg-green-600' : type === 'warning' ? 'bg-yellow-500' : 'bg-brand-primary'}`;
+    // Add more icons for other types if needed
+
+    toast.className = `mb-2 px-6 py-3 rounded shadow-lg text-white font-medium flex items-center gap-2 animate-fade-in ${
+        type === 'error' ? 'bg-red-600' :
+        type === 'success' ? 'bg-green-600' :
+        type === 'warning' ? 'bg-yellow-500' :
+        'bg-brand-primary'
+    }`;
+
     toast.innerHTML = `${icon}<span>${message}</span>`;
     container.appendChild(toast);
-    
-    setTimeout(() => { 
-        toast.classList.add('opacity-0'); 
-        setTimeout(() => toast.remove(), 500); 
+
+    setTimeout(() => {
+        toast.classList.add('opacity-0');
+        setTimeout(() => toast.remove(), 500);
     }, duration);
 }

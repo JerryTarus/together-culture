@@ -14,9 +14,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        const user = await userRes.json();
+        const userObj = await userRes.json();
+        const user = userObj.user;
         
-        if (user.role !== 'admin') { // Not an admin
+        if (!user || user.role !== 'admin') { // Not an admin
             alert('Access Denied: You do not have permission to view this page.');
             window.location.href = '/member_dashboard.html';
             return;

@@ -1,372 +1,882 @@
 // frontend/js/events.js
-document.addEventListener('DOMContentLoaded', () => {
-    let currentUser = null;
-    let events = [];
-    let members = [];
-    let selectedEventId = null;
 
-    // Element selectors
-    const sidebarNav = document.getElementById('sidebar-nav');
-    const logoutButton = document.getElementById('logout-button');
-    const createEventButton = document.getElementById('create-event-button');
-    const eventsList = document.getElementById('events-list');
-    const visitTrackingSection = document.getElementById('visit-tracking-section');
-    const visitTrackingContent = document.getElementById('visit-tracking-content');
+// Global state
+let currentPage = 1;
+let currentFilters = {
+    search: '',
+    status: 'all',
+    sortBy: 'date',
+    sortOrder: 'ASC'
+};
+let currentView = 'list';
+let currentUser = null;
+let currentEvents = [];
+let editingEventId = null;
+let currentCalendarDate = new Date();
+
+// DOM Elements
+let eventsContainer, eventsLoading, noEventsDiv, paginationDiv;
+let searchInput, statusFilter, sortFilter;
+let listView, calendarView, listViewBtn, calendarViewBtn;
+let createEventBtn, eventModal, eventFormModal;
+let userNameSpan, logoutBtn;
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('Events page loaded');
     
-    // Modal elements
-    const createEventModal = document.getElementById('create-event-modal');
-    const createEventForm = document.getElementById('create-event-form');
-    const cancelCreateEvent = document.getElementById('cancel-create-event');
-    const visitModal = document.getElementById('visit-modal');
-    const visitForm = document.getElementById('visit-form');
-    const cancelVisit = document.getElementById('cancel-visit');
-    const visitMemberSelect = document.getElementById('visit-member');
+    // Initialize DOM elements
+    initializeDOMElements();
+    
+    // Check authentication
+    await checkAuthentication();
+    
+    // Setup event listeners
+    setupEventListeners();
+    
+    // Load initial data
+    await loadEvents();
+    
+    // Setup calendar
+    updateCalendarView();
+});
 
-    async function initialize() {
-        await fetchCurrentUser();
-        buildSidebar();
-        await fetchEvents();
-        await fetchMembers();
-        renderEvents();
-        setupEventListeners();
+function initializeDOMElements() {
+    // Main containers
+    eventsContainer = document.getElementById('events-container');
+    eventsLoading = document.getElementById('events-loading');
+    noEventsDiv = document.getElementById('no-events');
+    paginationDiv = document.getElementById('pagination');
+    
+    // Filters
+    searchInput = document.getElementById('search-input');
+    statusFilter = document.getElementById('status-filter');
+    sortFilter = document.getElementById('sort-filter');
+    
+    // Views
+    listView = document.getElementById('list-view');
+    calendarView = document.getElementById('calendar-view');
+    listViewBtn = document.getElementById('list-view-btn');
+    calendarViewBtn = document.getElementById('calendar-view-btn');
+    
+    // Buttons
+    createEventBtn = document.getElementById('create-event-btn');
+    
+    // Modals
+    eventModal = document.getElementById('event-modal');
+    eventFormModal = document.getElementById('event-form-modal');
+    
+    // User elements
+    userNameSpan = document.getElementById('user-name');
+    logoutBtn = document.getElementById('logout-btn');
+}
+
+async function checkAuthentication() {
+    try {
+        const response = await fetch(CONFIG.apiUrl('api/users/me'), {
+            credentials: 'include'
+        });
         
-        // Set today's date as default for forms
-        document.getElementById('visit-date').value = new Date().toISOString().split('T')[0];
-    }
-
-    async function fetchCurrentUser() {
-        try {
-            const res = await fetch(CONFIG.apiUrl('api/users/me'));
-            if (!res.ok) window.location.href = '/login.html';
-            currentUser = await res.json();
-        } catch (error) {
+        if (!response.ok) {
+            console.log('Not authenticated, redirecting to login');
             window.location.href = '/login.html';
-        }
-    }
-
-    function buildSidebar() {
-        const commonLinks = `
-            <a href="/events.html" class="flex items-center p-3 my-1 bg-brand-beige text-brand-primary rounded-lg font-semibold">Events</a>
-            <a href="/resources.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg">Resources</a>
-            <a href="/messages.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg">Messages</a>
-            <a href="/settings.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg">Settings</a>
-        `;
-
-        if (currentUser.role === 'admin') {
-            sidebarNav.innerHTML = `
-                <a href="/admin_dashboard.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg">Dashboard</a>
-                <a href="/member_directory.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg">Members</a>
-                ${commonLinks}
-            `;
-            createEventButton.classList.remove('hidden');
-            visitTrackingSection.classList.remove('hidden');
-        } else {
-            sidebarNav.innerHTML = `
-                <a href="/member_dashboard.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg">Dashboard</a>
-                ${commonLinks}
-            `;
-        }
-    }
-
-    async function fetchEvents() {
-        try {
-            const res = await fetch(CONFIG.apiUrl('api/events'));
-            events = await res.json();
-        } catch (error) {
-            console.error('Error fetching events:', error);
-            events = [];
-        }
-    }
-
-    async function fetchMembers() {
-        if (currentUser.role !== 'admin') return;
-        try {
-            const res = await fetch(CONFIG.apiUrl('api/users'));
-            members = await res.json();
-            populateMemberSelect();
-        } catch (error) {
-            console.error('Error fetching members:', error);
-            members = [];
-        }
-    }
-
-    function populateMemberSelect() {
-        visitMemberSelect.innerHTML = '<option value="">Select a member...</option>';
-        members.forEach(member => {
-            if (member.role === 'member') {
-                const option = document.createElement('option');
-                option.value = member.id;
-                option.textContent = `${member.full_name} (${member.email})`;
-                visitMemberSelect.appendChild(option);
-            }
-        });
-    }
-
-    function renderEvents() {
-        if (events.length === 0) {
-            eventsList.innerHTML = '<div class="text-gray-400">No events found.</div>';
-            return;
-        }
-
-        eventsList.innerHTML = '';
-        events.forEach(event => {
-            const eventCard = document.createElement('div');
-            const isFull = event.capacity > 0 && event.registrations >= event.capacity;
-            eventCard.className = 'border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow';
-            eventCard.innerHTML = `
-                <div class="flex justify-between items-start">
-                    <div class="flex-1">
-                        <h4 class="text-lg font-semibold text-gray-800">${event.title}</h4>
-                        <p class="text-gray-600 mt-1">${event.description}</p>
-                        <div class="flex gap-4 text-sm text-gray-500 mt-2">
-                            <span>📅 ${new Date(event.event_date).toLocaleDateString()}</span>
-                            <span>📍 ${event.location}</span>
-                        </div>
-                        <div class="flex gap-4 text-sm mt-2">
-                            <span class="font-medium">Capacity:</span>
-                            <span>${event.capacity > 0 ? `${event.registrations} / ${event.capacity}` : 'Unlimited'}</span>
-                            ${isFull ? '<span class="text-red-600 font-semibold">Full</span>' : ''}
-                        </div>
-                    </div>
-                    <div class="flex gap-2 ml-4">
-                        ${currentUser.role === 'admin' ? `
-                            <button class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600" onclick="viewVisits(${event.id})">
-                                View Visits
-                            </button>
-                            <button class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600" onclick="${isFull ? '' : `recordVisit(${event.id})`}" ${isFull ? 'disabled style="opacity:0.6;cursor:not-allowed" title="Event is full"' : ''}>
-                                Record Visit
-                            </button>
-                            <button class="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600" onclick="editEvent(${event.id})">
-                                Edit
-                            </button>
-                            <button class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600" onclick="deleteEvent(${event.id})">
-                                Delete
-                            </button>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-            eventsList.appendChild(eventCard);
-        });
-    }
-
-    async function viewVisits(eventId) {
-        selectedEventId = eventId;
-        const event = events.find(e => e.id === eventId);
-        
-        try {
-            const res = await fetch(CONFIG.apiUrl(`api/events/${eventId}/visits`));
-            const visits = await res.json();
-            
-            visitTrackingContent.innerHTML = `
-                <div class="border-b pb-4 mb-4">
-                    <h4 class="text-lg font-semibold">${event.title} - Visits</h4>
-                    <p class="text-gray-600">${new Date(event.event_date).toLocaleDateString()} at ${event.location}</p>
-                </div>
-                <div class="space-y-2">
-                    ${visits.length === 0 ? 
-                        '<div class="text-gray-400">No visits recorded yet.</div>' :
-                        visits.map(visit => `
-                            <div class="flex justify-between items-center bg-gray-50 p-3 rounded">
-                                <div>
-                                    <span class="font-medium">${visit.full_name}</span>
-                                    <span class="text-gray-600 ml-2">(${visit.email})</span>
-                                    <div class="text-sm text-gray-500">Visited: ${new Date(visit.visit_date).toLocaleDateString()}</div>
-                                </div>
-                                <button class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600" onclick="deleteVisit(${eventId}, ${visit.id})">
-                                    Remove
-                                </button>
-                            </div>
-                        `).join('')
-                    }
-                </div>
-            `;
-        } catch (error) {
-            visitTrackingContent.innerHTML = '<div class="text-red-500">Error loading visits.</div>';
-        }
-    }
-
-    async function recordVisit(eventId) {
-        // Prevent opening modal if event is full
-        const event = events.find(ev => ev.id === eventId);
-        if (event && event.capacity > 0 && event.registrations >= event.capacity) {
-            alert('Event is full. Registration is closed.');
-            return;
-        }
-
-        selectedEventId = eventId;
-        visitModal.classList.remove('hidden');
-    }
-
-    function editEvent(eventId) {
-        const event = events.find(e => e.id === eventId);
-        if (!event) return;
-        
-        document.getElementById('event-title').value = event.title;
-        document.getElementById('event-description').value = event.description;
-        document.getElementById('event-date').value = event.event_date.split('T')[0];
-        document.getElementById('event-location').value = event.location;
-        document.getElementById('event-capacity').value = event.capacity > 0 ? event.capacity : '';
-        
-        // Store event ID for updating
-        createEventForm.dataset.eventId = eventId;
-        createEventModal.classList.remove('hidden');
-    }
-
-    async function deleteEvent(eventId) {
-        if (!confirm('Are you sure you want to delete this event? This will also delete all associated visits.')) {
             return;
         }
         
-        try {
-            const res = await fetch(CONFIG.apiUrl(`api/events/${eventId}`), { method: 'DELETE' });
-            const data = await res.json();
-            
-            if (!res.ok) throw new Error(data.message);
-            
-            alert('Event deleted successfully');
-            await fetchEvents();
-            renderEvents();
-            
-            // Clear visit tracking if this event was selected
-            if (selectedEventId === eventId) {
-                visitTrackingContent.innerHTML = '<p class="text-gray-500">Select an event above to view and manage visits.</p>';
-            }
-        } catch (error) {
-            alert('Error deleting event: ' + error.message);
-        }
-    }
-
-    async function deleteVisit(eventId, visitId) {
-        if (!confirm('Are you sure you want to remove this visit record?')) {
-            return;
+        const data = await response.json();
+        currentUser = data.user;
+        
+        // Update UI based on user role
+        if (userNameSpan) {
+            userNameSpan.textContent = currentUser.full_name;
         }
         
-        try {
-            const res = await fetch(CONFIG.apiUrl(`api/events/${eventId}/visits/${visitId}`), { method: 'DELETE' });
-            const data = await res.json();
-            
-            if (!res.ok) throw new Error(data.message);
-            
-            alert('Visit removed successfully');
-            viewVisits(eventId); // Refresh the visits list
-        } catch (error) {
-            alert('Error removing visit: ' + error.message);
+        // Show create button for admins
+        if (currentUser.role === 'admin' && createEventBtn) {
+            createEventBtn.classList.remove('hidden');
         }
-    }
-
-    function setupEventListeners() {
-        logoutButton.addEventListener('click', handleLogout);
         
-        createEventButton.addEventListener('click', () => {
-            // Clear form and remove event ID
-            createEventForm.reset();
-            delete createEventForm.dataset.eventId;
-            createEventModal.classList.remove('hidden');
-        });
-        
-        cancelCreateEvent.addEventListener('click', () => {
-            createEventModal.classList.add('hidden');
-        });
-        
-        createEventForm.addEventListener('submit', handleEventSubmit);
-        
-        cancelVisit.addEventListener('click', () => {
-            visitModal.classList.add('hidden');
-        });
-        
-        visitForm.addEventListener('submit', handleVisitSubmit);
-        
-        // Close modals on background click
-        createEventModal.addEventListener('click', (e) => {
-            if (e.target === createEventModal) {
-                createEventModal.classList.add('hidden');
-            }
-        });
-        
-        visitModal.addEventListener('click', (e) => {
-            if (e.target === visitModal) {
-                visitModal.classList.add('hidden');
-            }
-        });
-    }
-
-    async function handleEventSubmit(e) {
-        e.preventDefault();
-        
-        const capVal = document.getElementById('event-capacity').value;
-        const eventData = {
-            title: document.getElementById('event-title').value,
-            description: document.getElementById('event-description').value,
-            event_date: document.getElementById('event-date').value,
-            location: document.getElementById('event-location').value,
-            capacity: capVal ? parseInt(capVal, 10) : null
-        };
-        
-        try {
-            const eventId = createEventForm.dataset.eventId;
-            const url = eventId ? CONFIG.apiUrl(`api/events/${eventId}`) : CONFIG.apiUrl('api/events');
-            const method = eventId ? 'PUT' : 'POST';
-            
-            const res = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(eventData)
-            });
-            
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message);
-            
-            alert(eventId ? 'Event updated successfully' : 'Event created successfully');
-            createEventModal.classList.add('hidden');
-            await fetchEvents();
-            renderEvents();
-        } catch (error) {
-            alert('Error saving event: ' + error.message);
-        }
-    }
-
-    async function handleVisitSubmit(e) {
-        e.preventDefault();
-        
-        const visitData = {
-            user_id: parseInt(visitMemberSelect.value),
-            visit_date: document.getElementById('visit-date').value
-        };
-        
-        try {
-            const res = await fetch(CONFIG.apiUrl(`api/events/${selectedEventId}/visits`), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(visitData)
-            });
-            
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message);
-            
-            alert('Visit recorded successfully');
-            visitModal.classList.add('hidden');
-            visitForm.reset();
-            document.getElementById('visit-date').value = new Date().toISOString().split('T')[0];
-            
-            // Refresh visits if currently viewing this event
-            viewVisits(selectedEventId);
-        } catch (error) {
-            alert('Error recording visit: ' + error.message);
-        }
-    }
-
-    async function handleLogout() {
-        await fetch(CONFIG.apiUrl('api/auth/logout'), { method: 'POST' });
+        console.log('User authenticated:', currentUser.email, 'Role:', currentUser.role);
+    } catch (error) {
+        console.error('Authentication check failed:', error);
         window.location.href = '/login.html';
     }
+}
 
-    // Make functions global for onclick handlers
-    window.viewVisits = viewVisits;
-    window.recordVisit = recordVisit;
-    window.editEvent = editEvent;
-    window.deleteEvent = deleteEvent;
-    window.deleteVisit = deleteVisit;
+function setupEventListeners() {
+    // Search and filters
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce(() => {
+            currentFilters.search = searchInput.value;
+            currentPage = 1;
+            loadEvents();
+        }, 300));
+    }
+    
+    if (statusFilter) {
+        statusFilter.addEventListener('change', () => {
+            currentFilters.status = statusFilter.value;
+            currentPage = 1;
+            loadEvents();
+        });
+    }
+    
+    if (sortFilter) {
+        sortFilter.addEventListener('change', () => {
+            currentFilters.sortBy = sortFilter.value;
+            currentPage = 1;
+            loadEvents();
+        });
+    }
+    
+    // Clear filters
+    const clearFiltersBtn = document.getElementById('clear-filters-btn');
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', clearFilters);
+    }
+    
+    // View toggle
+    if (listViewBtn) {
+        listViewBtn.addEventListener('click', () => switchView('list'));
+    }
+    if (calendarViewBtn) {
+        calendarViewBtn.addEventListener('click', () => switchView('calendar'));
+    }
+    
+    // Create event
+    if (createEventBtn) {
+        createEventBtn.addEventListener('click', () => openEventForm());
+    }
+    
+    // Event form
+    const eventForm = document.getElementById('event-form');
+    if (eventForm) {
+        eventForm.addEventListener('submit', handleEventSubmit);
+    }
+    
+    // Calendar navigation
+    const prevMonthBtn = document.getElementById('prev-month');
+    const nextMonthBtn = document.getElementById('next-month');
+    if (prevMonthBtn) {
+        prevMonthBtn.addEventListener('click', () => {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+            updateCalendarView();
+        });
+    }
+    if (nextMonthBtn) {
+        nextMonthBtn.addEventListener('click', () => {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+            updateCalendarView();
+        });
+    }
+    
+    // Logout
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
+    }
+    
+    // Pagination
+    setupPaginationListeners();
+}
 
-    initialize();
-});
+function setupPaginationListeners() {
+    const prevMobile = document.getElementById('prev-mobile');
+    const nextMobile = document.getElementById('next-mobile');
+    const prevDesktop = document.getElementById('prev-desktop');
+    const nextDesktop = document.getElementById('next-desktop');
+    
+    [prevMobile, prevDesktop].forEach(btn => {
+        if (btn) {
+            btn.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    loadEvents();
+                }
+            });
+        }
+    });
+    
+    [nextMobile, nextDesktop].forEach(btn => {
+        if (btn) {
+            btn.addEventListener('click', () => {
+                currentPage++;
+                loadEvents();
+            });
+        }
+    });
+}
+
+async function loadEvents() {
+    try {
+        showLoading(true);
+        
+        const params = new URLSearchParams({
+            page: currentPage,
+            limit: 10,
+            status: currentFilters.status,
+            search: currentFilters.search,
+            sortBy: currentFilters.sortBy,
+            sortOrder: currentFilters.sortOrder
+        });
+        
+        const response = await fetch(CONFIG.apiUrl(`api/events?${params}`), {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load events');
+        }
+        
+        const data = await response.json();
+        currentEvents = data.events;
+        
+        displayEvents(data.events);
+        updatePagination(data.pagination);
+        
+        // Update calendar if in calendar view
+        if (currentView === 'calendar') {
+            updateCalendarView();
+        }
+        
+    } catch (error) {
+        console.error('Error loading events:', error);
+        showMessage('Failed to load events. Please try again.', 'error');
+        showNoEvents();
+    } finally {
+        showLoading(false);
+    }
+}
+
+function displayEvents(events) {
+    if (!eventsContainer) return;
+    
+    if (events.length === 0) {
+        showNoEvents();
+        return;
+    }
+    
+    eventsContainer.innerHTML = '';
+    eventsContainer.classList.remove('hidden');
+    noEventsDiv.classList.add('hidden');
+    
+    events.forEach(event => {
+        const eventCard = createEventCard(event);
+        eventsContainer.appendChild(eventCard);
+    });
+}
+
+function createEventCard(event) {
+    const card = document.createElement('div');
+    card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer';
+    
+    const eventDate = new Date(event.date);
+    const eventTime = event.time ? formatTime(event.time) : '';
+    const isUpcoming = eventDate >= new Date();
+    const isPast = eventDate < new Date();
+    const isFull = event.registered_count >= event.capacity;
+    
+    card.innerHTML = `
+        <div class="flex items-start justify-between">
+            <div class="flex-1">
+                <div class="flex items-center gap-2 mb-2">
+                    <h3 class="text-lg font-semibold text-gray-900">${escapeHtml(event.title)}</h3>
+                    ${isPast ? '<span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">Past</span>' : ''}
+                    ${isFull && isUpcoming ? '<span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-600 rounded-full">Full</span>' : ''}
+                    ${event.is_user_registered ? '<span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-600 rounded-full">Registered</span>' : ''}
+                </div>
+                <p class="text-gray-600 mb-3 line-clamp-2">${escapeHtml(event.description)}</p>
+                <div class="flex items-center gap-4 text-sm text-gray-500">
+                    <div class="flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span>${formatDate(eventDate)} ${eventTime}</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <span>${escapeHtml(event.location)}</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM9 9a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        <span>${event.registered_count}/${event.capacity}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 ml-4">
+                ${currentUser.role === 'admin' ? `
+                    <button onclick="editEvent(${event.id})" class="p-2 text-gray-400 hover:text-blue-600 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                    </button>
+                    <button onclick="deleteEvent(${event.id}, '${escapeHtml(event.title)}')" class="p-2 text-gray-400 hover:text-red-600 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                ` : ''}
+                <button onclick="viewEvent(${event.id})" class="px-4 py-2 text-sm font-medium text-brand-primary border border-brand-primary rounded-lg hover:bg-brand-primary hover:text-white transition-colors">
+                    View Details
+                </button>
+            </div>
+        </div>
+    `;
+    
+    return card;
+}
+
+async function viewEvent(eventId) {
+    try {
+        const response = await fetch(CONFIG.apiUrl(`api/events/${eventId}`), {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load event details');
+        }
+        
+        const event = await response.json();
+        showEventModal(event);
+        
+    } catch (error) {
+        console.error('Error loading event details:', error);
+        showMessage('Failed to load event details.', 'error');
+    }
+}
+
+function showEventModal(event) {
+    const modalTitle = document.getElementById('modal-title');
+    const modalContent = document.getElementById('modal-content');
+    const modalActions = document.getElementById('modal-actions');
+    
+    if (!modalTitle || !modalContent || !modalActions) return;
+    
+    const eventDate = new Date(event.date);
+    const eventTime = event.time ? formatTime(event.time) : '';
+    const isUpcoming = eventDate >= new Date();
+    const isPast = eventDate < new Date();
+    const isFull = event.registered_count >= event.capacity;
+    const canRegister = isUpcoming && !isFull && !event.is_user_registered;
+    const canUnregister = event.is_user_registered;
+    
+    modalTitle.textContent = event.title;
+    
+    modalContent.innerHTML = `
+        <div class="space-y-4">
+            <div>
+                <h4 class="font-medium text-gray-900 mb-2">Description</h4>
+                <p class="text-gray-600">${escapeHtml(event.description)}</p>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <h4 class="font-medium text-gray-900 mb-1">Date & Time</h4>
+                    <p class="text-gray-600">${formatDate(eventDate)} ${eventTime}</p>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-900 mb-1">Location</h4>
+                    <p class="text-gray-600">${escapeHtml(event.location)}</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <h4 class="font-medium text-gray-900 mb-1">Capacity</h4>
+                    <p class="text-gray-600">${event.registered_count}/${event.capacity} registered</p>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-900 mb-1">Status</h4>
+                    <div class="flex gap-1">
+                        ${isPast ? '<span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">Past Event</span>' : ''}
+                        ${isFull && isUpcoming ? '<span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-600 rounded-full">Full</span>' : ''}
+                        ${event.is_user_registered ? '<span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-600 rounded-full">You are registered</span>' : ''}
+                    </div>
+                </div>
+            </div>
+            ${event.registrations && event.registrations.length > 0 ? `
+                <div>
+                    <h4 class="font-medium text-gray-900 mb-2">Registered Members (${event.registrations.length})</h4>
+                    <div class="max-h-32 overflow-y-auto space-y-1">
+                        ${event.registrations.map(reg => `
+                            <div class="text-sm text-gray-600">${escapeHtml(reg.full_name)}</div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+        </div>
+    `;
+    
+    modalActions.innerHTML = `
+        ${canRegister ? `
+            <button onclick="registerForEvent(${event.id})" 
+                    class="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 transition-colors">
+                Register
+            </button>
+        ` : ''}
+        ${canUnregister ? `
+            <button onclick="unregisterFromEvent(${event.id})" 
+                    class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                Unregister
+            </button>
+        ` : ''}
+        <button onclick="closeEventModal()" 
+                class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+            Close
+        </button>
+    `;
+    
+    eventModal.classList.remove('hidden');
+}
+
+async function registerForEvent(eventId) {
+    try {
+        const response = await fetch(CONFIG.apiUrl(`api/events/${eventId}/register`), {
+            method: 'POST',
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to register for event');
+        }
+        
+        showMessage('Successfully registered for event!', 'success');
+        closeEventModal();
+        await loadEvents();
+        
+    } catch (error) {
+        console.error('Error registering for event:', error);
+        showMessage(error.message, 'error');
+    }
+}
+
+async function unregisterFromEvent(eventId) {
+    if (!confirm('Are you sure you want to unregister from this event?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(CONFIG.apiUrl(`api/events/${eventId}/register`), {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to unregister from event');
+        }
+        
+        showMessage('Successfully unregistered from event.', 'success');
+        closeEventModal();
+        await loadEvents();
+        
+    } catch (error) {
+        console.error('Error unregistering from event:', error);
+        showMessage(error.message, 'error');
+    }
+}
+
+function closeEventModal() {
+    if (eventModal) {
+        eventModal.classList.add('hidden');
+    }
+}
+
+function openEventForm(eventData = null) {
+    const formTitle = document.getElementById('form-modal-title');
+    const saveBtn = document.getElementById('save-event-btn');
+    const saveText = saveBtn?.querySelector('.save-text');
+    
+    editingEventId = eventData ? eventData.id : null;
+    
+    if (formTitle) {
+        formTitle.textContent = eventData ? 'Edit Event' : 'Create Event';
+    }
+    if (saveText) {
+        saveText.textContent = eventData ? 'Update Event' : 'Create Event';
+    }
+    
+    // Populate form if editing
+    if (eventData) {
+        document.getElementById('event-title').value = eventData.title || '';
+        document.getElementById('event-description').value = eventData.description || '';
+        document.getElementById('event-date').value = eventData.date || '';
+        document.getElementById('event-time').value = eventData.time || '';
+        document.getElementById('event-location').value = eventData.location || '';
+        document.getElementById('event-capacity').value = eventData.capacity || '';
+    } else {
+        document.getElementById('event-form').reset();
+        // Set minimum date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('event-date').min = today;
+    }
+    
+    eventFormModal.classList.remove('hidden');
+}
+
+async function editEvent(eventId) {
+    try {
+        const response = await fetch(CONFIG.apiUrl(`api/events/${eventId}`), {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load event for editing');
+        }
+        
+        const event = await response.json();
+        openEventForm(event);
+        
+    } catch (error) {
+        console.error('Error loading event for edit:', error);
+        showMessage('Failed to load event for editing.', 'error');
+    }
+}
+
+async function deleteEvent(eventId, eventTitle) {
+    if (!confirm(`Are you sure you want to delete the event "${eventTitle}"? This action cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(CONFIG.apiUrl(`api/events/${eventId}`), {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to delete event');
+        }
+        
+        showMessage('Event deleted successfully.', 'success');
+        await loadEvents();
+        
+    } catch (error) {
+        console.error('Error deleting event:', error);
+        showMessage(error.message, 'error');
+    }
+}
+
+async function handleEventSubmit(e) {
+    e.preventDefault();
+    
+    const saveBtn = document.getElementById('save-event-btn');
+    const saveText = saveBtn?.querySelector('.save-text');
+    const saveLoading = saveBtn?.querySelector('.save-loading');
+    
+    if (saveBtn) saveBtn.disabled = true;
+    if (saveText) saveText.classList.add('hidden');
+    if (saveLoading) saveLoading.classList.remove('hidden');
+    
+    try {
+        const formData = {
+            title: document.getElementById('event-title').value,
+            description: document.getElementById('event-description').value,
+            date: document.getElementById('event-date').value,
+            time: document.getElementById('event-time').value,
+            location: document.getElementById('event-location').value,
+            capacity: parseInt(document.getElementById('event-capacity').value)
+        };
+        
+        const url = editingEventId 
+            ? CONFIG.apiUrl(`api/events/${editingEventId}`)
+            : CONFIG.apiUrl('api/events');
+        const method = editingEventId ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify(formData)
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to save event');
+        }
+        
+        const message = editingEventId ? 'Event updated successfully!' : 'Event created successfully!';
+        showMessage(message, 'success');
+        closeEventFormModal();
+        await loadEvents();
+        
+    } catch (error) {
+        console.error('Error saving event:', error);
+        showMessage(error.message, 'error');
+    } finally {
+        if (saveBtn) saveBtn.disabled = false;
+        if (saveText) saveText.classList.remove('hidden');
+        if (saveLoading) saveLoading.classList.add('hidden');
+    }
+}
+
+function closeEventFormModal() {
+    if (eventFormModal) {
+        eventFormModal.classList.add('hidden');
+    }
+    editingEventId = null;
+}
+
+function switchView(view) {
+    currentView = view;
+    
+    if (view === 'list') {
+        listView.classList.remove('hidden');
+        calendarView.classList.add('hidden');
+        listViewBtn.classList.add('bg-white', 'text-gray-900', 'shadow-sm');
+        listViewBtn.classList.remove('text-gray-500');
+        calendarViewBtn.classList.remove('bg-white', 'text-gray-900', 'shadow-sm');
+        calendarViewBtn.classList.add('text-gray-500');
+    } else {
+        listView.classList.add('hidden');
+        calendarView.classList.remove('hidden');
+        calendarViewBtn.classList.add('bg-white', 'text-gray-900', 'shadow-sm');
+        calendarViewBtn.classList.remove('text-gray-500');
+        listViewBtn.classList.remove('bg-white', 'text-gray-900', 'shadow-sm');
+        listViewBtn.classList.add('text-gray-500');
+        updateCalendarView();
+    }
+}
+
+function updateCalendarView() {
+    const calendarMonth = document.getElementById('calendar-month');
+    const calendarGrid = document.getElementById('calendar-grid');
+    
+    if (!calendarMonth || !calendarGrid) return;
+    
+    const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    
+    calendarMonth.textContent = `${monthNames[currentCalendarDate.getMonth()]} ${currentCalendarDate.getFullYear()}`;
+    
+    // Clear existing calendar
+    calendarGrid.innerHTML = '';
+    
+    // Get first day of month and number of days
+    const firstDay = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), 1);
+    const lastDay = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1, 0);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    
+    // Generate calendar days
+    const currentDate = new Date(startDate);
+    for (let week = 0; week < 6; week++) {
+        for (let day = 0; day < 7; day++) {
+            const dayElement = createCalendarDay(new Date(currentDate));
+            calendarGrid.appendChild(dayElement);
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        if (currentDate > lastDay && currentDate.getDay() === 0) break;
+    }
+}
+
+function createCalendarDay(date) {
+    const dayElement = document.createElement('div');
+    dayElement.className = 'calendar-day p-2 min-h-[100px] border border-gray-200';
+    
+    const isCurrentMonth = date.getMonth() === currentCalendarDate.getMonth();
+    const isToday = date.toDateString() === new Date().toDateString();
+    
+    if (!isCurrentMonth) {
+        dayElement.classList.add('bg-gray-50', 'text-gray-400');
+    }
+    
+    if (isToday) {
+        dayElement.classList.add('bg-blue-50');
+    }
+    
+    // Find events for this date
+    const dateString = date.toISOString().split('T')[0];
+    const dayEvents = currentEvents.filter(event => event.date === dateString);
+    
+    dayElement.innerHTML = `
+        <div class="text-sm font-medium ${isToday ? 'text-blue-600' : ''}">${date.getDate()}</div>
+        <div class="mt-1 space-y-1">
+            ${dayEvents.map(event => `
+                <div class="text-xs p-1 bg-brand-primary text-white rounded truncate cursor-pointer" 
+                     onclick="viewEvent(${event.id})" title="${escapeHtml(event.title)}">
+                    <span class="event-dot bg-white"></span>${escapeHtml(event.title)}
+                </div>
+            `).join('')}
+        </div>
+    `;
+    
+    return dayElement;
+}
+
+function clearFilters() {
+    currentFilters = {
+        search: '',
+        status: 'all',
+        sortBy: 'date',
+        sortOrder: 'ASC'
+    };
+    currentPage = 1;
+    
+    if (searchInput) searchInput.value = '';
+    if (statusFilter) statusFilter.value = 'all';
+    if (sortFilter) sortFilter.value = 'date';
+    
+    loadEvents();
+}
+
+function updatePagination(pagination) {
+    if (!paginationDiv) return;
+    
+    if (pagination.totalPages <= 1) {
+        paginationDiv.classList.add('hidden');
+        return;
+    }
+    
+    paginationDiv.classList.remove('hidden');
+    
+    // Update showing text
+    const showingFrom = document.getElementById('showing-from');
+    const showingTo = document.getElementById('showing-to');
+    const totalEvents = document.getElementById('total-events');
+    
+    if (showingFrom) showingFrom.textContent = (pagination.page - 1) * pagination.limit + 1;
+    if (showingTo) showingTo.textContent = Math.min(pagination.page * pagination.limit, pagination.total);
+    if (totalEvents) totalEvents.textContent = pagination.total;
+    
+    // Update buttons
+    const prevButtons = [document.getElementById('prev-mobile'), document.getElementById('prev-desktop')];
+    const nextButtons = [document.getElementById('next-mobile'), document.getElementById('next-desktop')];
+    
+    prevButtons.forEach(btn => {
+        if (btn) {
+            btn.disabled = pagination.page <= 1;
+            btn.classList.toggle('opacity-50', pagination.page <= 1);
+            btn.classList.toggle('cursor-not-allowed', pagination.page <= 1);
+        }
+    });
+    
+    nextButtons.forEach(btn => {
+        if (btn) {
+            btn.disabled = pagination.page >= pagination.totalPages;
+            btn.classList.toggle('opacity-50', pagination.page >= pagination.totalPages);
+            btn.classList.toggle('cursor-not-allowed', pagination.page >= pagination.totalPages);
+        }
+    });
+    
+    // Update page numbers
+    const pageNumbers = document.getElementById('page-numbers');
+    if (pageNumbers) {
+        pageNumbers.innerHTML = '';
+        
+        const startPage = Math.max(1, pagination.page - 2);
+        const endPage = Math.min(pagination.totalPages, pagination.page + 2);
+        
+        for (let i = startPage; i <= endPage; i++) {
+            const pageBtn = document.createElement('button');
+            pageBtn.className = `relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                i === pagination.page 
+                    ? 'z-10 bg-brand-primary border-brand-primary text-white' 
+                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+            }`;
+            pageBtn.textContent = i;
+            pageBtn.addEventListener('click', () => {
+                currentPage = i;
+                loadEvents();
+            });
+            pageNumbers.appendChild(pageBtn);
+        }
+    }
+}
+
+function showLoading(show) {
+    if (show) {
+        eventsLoading.classList.remove('hidden');
+        eventsContainer.classList.add('hidden');
+        noEventsDiv.classList.add('hidden');
+    } else {
+        eventsLoading.classList.add('hidden');
+    }
+}
+
+function showNoEvents() {
+    eventsContainer.classList.add('hidden');
+    noEventsDiv.classList.remove('hidden');
+    paginationDiv.classList.add('hidden');
+}
+
+async function handleLogout() {
+    try {
+        await fetch(CONFIG.apiUrl('api/auth/logout'), {
+            method: 'POST',
+            credentials: 'include'
+        });
+    } catch (error) {
+        console.error('Logout error:', error);
+    } finally {
+        window.location.href = '/login.html';
+    }
+}
+
+// Utility functions
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatDate(date) {
+    return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
+}
+
+function formatTime(timeString) {
+    const [hours, minutes] = timeString.split(':');
+    const date = new Date();
+    date.setHours(parseInt(hours), parseInt(minutes));
+    return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    });
+}
+
+function showMessage(message, type = 'info', duration = 3000) {
+    // Reuse the showMessage function from auth.js
+    if (typeof window.showMessage === 'function') {
+        window.showMessage(message, type, duration);
+        return;
+    }
+    
+    // Fallback implementation
+    console.log(`${type.toUpperCase()}: ${message}`);
+    alert(message);
+}
+
+// Global functions for onclick handlers
+window.viewEvent = viewEvent;
+window.editEvent = editEvent;
+window.deleteEvent = deleteEvent;
+window.registerForEvent = registerForEvent;
+window.unregisterFromEvent = unregisterFromEvent;
+window.closeEventModal = closeEventModal;
+window.closeEventFormModal = closeEventFormModal;

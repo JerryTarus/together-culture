@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Test - Together Culture</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <h1 class="text-2xl font-bold mb-4">Login Test</h1>
+        
+        <div id="status" class="mb-4 p-3 bg-blue-100 text-blue-800 rounded">
+            Testing connection...
+        </div>
+        
+        <form id="test-form" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Email</label>
+                <input type="email" id="email" value="admin@togetherculture.com" 
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Password</label>
+                <input type="password" id="password" value="admin123"
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+            <button type="submit" id="test-btn" 
+                    class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">
+                Test Login
+            </button>
+        </form>
+        
+        <div id="results" class="mt-4"></div>
+    </div>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            API_BASE_URL: 'http://localhost:5000',
+            apiUrl: (endpoint) => {
+                const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+                return `${CONFIG.API_BASE_URL}/${cleanEndpoint}`;
+            }
+        };
+
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `p-2 mb-2 rounded text-sm ${
+                type === 'error' ? 'bg-red-100 text-red-800' : 
+                type === 'success' ? 'bg-green-100 text-green-800' : 
+                'bg-gray-100 text-gray-800'
+            }`;
+            div.textContent = message;
+            results.appendChild(div);
+            console.log(message);
+        }
+
+        async function testConnection() {
+            try {
+                const response = await fetch(CONFIG.apiUrl('api/admin/stats'));
+                log(`Server response: ${response.status}`, response.status === 401 ? 'success' : 'info');
+                document.getElementById('status').textContent = 'Server is running ✓';
+                document.getElementById('status').className = 'mb-4 p-3 bg-green-100 text-green-800 rounded';
+            } catch (error) {
+                log(`Connection failed: ${error.message}`, 'error');
+                document.getElementById('status').textContent = 'Server connection failed ✗';
+                document.getElementById('status').className = 'mb-4 p-3 bg-red-100 text-red-800 rounded';
+            }
+        }
+
+        async function testLogin(email, password) {
+            try {
+                log('Starting login test...');
+                
+                const response = await fetch(CONFIG.apiUrl('api/auth/login'), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ email, password, rememberMe: false })
+                });
+
+                log(`Login response status: ${response.status}`);
+
+                const data = await response.json();
+                log(`Response data: ${JSON.stringify(data)}`);
+
+                if (response.ok) {
+                    log('Login successful!', 'success');
+                    log(`User: ${data.user.full_name} (${data.user.role})`);
+                } else {
+                    log(`Login failed: ${data.message}`, 'error');
+                }
+
+            } catch (error) {
+                log(`Login error: ${error.message}`, 'error');
+            }
+        }
+
+        document.getElementById('test-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            document.getElementById('results').innerHTML = '';
+            await testLogin(email, password);
+        });
+
+        // Test connection on load
+        testConnection();
+    </script>
+</body>
+</html> 

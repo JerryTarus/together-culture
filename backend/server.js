@@ -13,9 +13,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// CORS configuration - more permissive for development
 app.use(cors({
     credentials: true,
-    // Allow requests from any localhost/127.0.0.1 port for development
     origin: function (origin, callback) {
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
@@ -30,12 +30,27 @@ app.use(cors({
             return callback(null, true);
         }
         
+        // For development, be more permissive
+        if (process.env.NODE_ENV === 'development') {
+            return callback(null, true);
+        }
+        
         // For production, you should restrict this to your actual domain
         callback(new Error('Not allowed by CORS'));
     }
 }));
+
 app.use(express.json());
 app.use(cookieParser());
+
+// Add request logging for debugging
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    if (req.method === 'POST' && req.path.includes('/auth/')) {
+        console.log('Auth request body keys:', Object.keys(req.body));
+    }
+    next();
+});
 
 // --- API Routes ---
 app.use('/api/auth', require('./routes/auth'));
@@ -63,13 +78,11 @@ app.get(['/member_dashboard.html', '/events.html', '/messages.html', '/resources
     next();
 });
 
-
 // --- SERVE ALL FRONTEND FILES ---
 // This will only be reached for pages if the protection middleware above calls 'next()'.
 // It also serves all public files like CSS, public JS, and images.
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
-
 
 // --- FINAL FALLBACK ---
 // FIXED: Changed '*' to '*splat' to provide a name for the wildcard parameter
@@ -89,5 +102,8 @@ app.use((req, res, next) => {
 });
 // --- END OF FIX ---
 
-
-app.listen(PORT, () => console.log(`🚀 Secure MPA Server is fully operational on http://localhost:${PORT}`));
+app.listen(PORT, () => {
+    console.log(`🚀 Secure MPA Server is fully operational on http://localhost:${PORT}`);
+    console.log(`📂 Serving frontend from: ${path.join(__dirname, '..', 'frontend')}`);
+    console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
+});

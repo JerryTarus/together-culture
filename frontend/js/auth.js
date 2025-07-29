@@ -33,6 +33,8 @@ function handleTogglePassword() {
 
 async function handleLogin(e) {
     e.preventDefault();
+    console.log('Login form submitted'); // Debug log
+    
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const rememberMe = document.getElementById('remember-me').checked;
@@ -40,68 +42,126 @@ async function handleLogin(e) {
     const loginButton = document.getElementById('login-button');
     const messageDiv = document.getElementById('error-message');
     
+    // Validate inputs
+    if (!email || !password) {
+        showErrorMessage('Please enter both email and password.');
+        return;
+    }
+    
     loginButton.disabled = true;
     loginButton.textContent = 'Logging in...';
     messageDiv.classList.add('hidden');
     
     try {
-        const res = await fetch(CONFIG.apiUrl('api/auth/login'), {
+        // Check if CONFIG is available
+        if (typeof CONFIG === 'undefined') {
+            throw new Error('Configuration not loaded. Please refresh the page.');
+        }
+        
+        const apiUrl = CONFIG.apiUrl('api/auth/login');
+        console.log('Making request to:', apiUrl); // Debug log
+        
+        const res = await fetch(apiUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            credentials: 'include', // Include cookies
             body: JSON.stringify({ email, password, rememberMe }),
         });
-        const data = await res.json();
+        
+        console.log('Response status:', res.status); // Debug log
+        
         if (!res.ok) {
-            let errorMsg = data.message || 'Failed to login.';
-            if (data.errors) {
-                errorMsg += '\n' + Object.entries(data.errors)
-                    .filter(([k, v]) => v)
-                    .map(([k, v]) => `${k}: ${v}`)
-                    .join('\n');
-            }
-            // If status error (pending/rejected), show as yellow toast
-            if (data.errors && data.errors.status) {
-                if (data.errors.status === 'pending') {
-                    showMessage('Your account is pending admin approval. You will be able to log in once approved.', 'warning', 5000);
-                } else if (data.errors.status === 'rejected' || data.errors.status === 'disabled') {
-                    showMessage('Your account has been rejected or disabled. Please contact support.', 'error', 5000);
-                } else {
-                    showMessage(data.message, 'warning', 5000);
+            let errorMessage = 'Login failed. Please try again.';
+            
+            try {
+                const data = await res.json();
+                console.log('Error response data:', data); // Debug log
+                
+                if (data.message) {
+                    errorMessage = data.message;
                 }
-            } else {
-                showMessage(errorMsg, 'error', 5000);
+                
+                // Handle specific status errors
+                if (data.errors && data.errors.status) {
+                    if (data.errors.status === 'pending') {
+                        showMessage('Your account is pending admin approval. You will be able to log in once approved.', 'warning', 5000);
+                    } else if (data.errors.status === 'rejected' || data.errors.status === 'disabled') {
+                        showMessage('Your account has been rejected or disabled. Please contact support.', 'error', 5000);
+                    } else {
+                        showMessage(data.message, 'warning', 5000);
+                    }
+                } else {
+                    showErrorMessage(errorMessage);
+                }
+            } catch (parseError) {
+                console.error('Error parsing response:', parseError);
+                showErrorMessage('Server error. Please try again later.');
             }
-            messageDiv.textContent = '';
-            messageDiv.classList.add('hidden');
+            
             loginButton.disabled = false;
             loginButton.textContent = 'Log In';
             return;
         }
         
+        const data = await res.json();
+        console.log('Login successful:', data); // Debug log
+        
+        // Show success message
+        showMessage('Login successful! Redirecting...', 'success', 2000);
+        
         // Redirect based on role
-        window.location.replace(data.user.role === 'admin' ? '/admin_dashboard.html' : '/member_dashboard.html');
+        setTimeout(() => {
+            const redirectUrl = data.user.role === 'admin' ? '/admin_dashboard.html' : '/member_dashboard.html';
+            console.log('Redirecting to:', redirectUrl);
+            window.location.href = redirectUrl;
+        }, 1000);
 
     } catch (error) {
-        messageDiv.textContent = error.message;
-        messageDiv.classList.remove('hidden');
-        messageDiv.setAttribute('tabindex', '-1');
-        messageDiv.focus();
+        console.error('Login error:', error); // Debug log
+        
+        let errorMessage = 'Network error. Please check your connection and try again.';
+        if (error.message) {
+            errorMessage = error.message;
+        }
+        
+        showErrorMessage(errorMessage);
         loginButton.disabled = false;
         loginButton.textContent = 'Log In';
     }
 }
 
+function showErrorMessage(message) {
+    const messageDiv = document.getElementById('error-message');
+    if (messageDiv) {
+        messageDiv.textContent = message;
+        messageDiv.classList.remove('hidden');
+        messageDiv.setAttribute('tabindex', '-1');
+        messageDiv.focus();
+    } else {
+        // Fallback to toast if error div not found
+        showMessage(message, 'error', 5000);
+    }
+}
+
 async function handleRegister(e) {
     e.preventDefault();
+    console.log('Register form submitted'); // Debug log
+    
     const registerButton = document.getElementById('register-button');
     const messageDiv = document.getElementById('message-div');
+    
     registerButton.disabled = true;
     registerButton.textContent = 'Creating Account...';
-    messageDiv.classList.add('hidden');
+    if (messageDiv) messageDiv.classList.add('hidden');
+    
     const full_name = document.getElementById('full_name').value;
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const confirm_password = document.getElementById('confirm_password').value;
+    
     if (password !== confirm_password) {
         showMessage('Passwords do not match.', 'error');
         registerButton.disabled = false;
@@ -109,13 +169,25 @@ async function handleRegister(e) {
         document.getElementById('confirm_password').focus();
         return;
     }
+    
     try {
+        // Check if CONFIG is available
+        if (typeof CONFIG === 'undefined') {
+            throw new Error('Configuration not loaded. Please refresh the page.');
+        }
+        
         const res = await fetch(CONFIG.apiUrl('api/auth/register'), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            credentials: 'include', // Include cookies
             body: JSON.stringify({ full_name, email, password }),
         });
+        
         const data = await res.json();
+        
         if (!res.ok) {
             let errorMsg = data.message || 'Failed to register.';
             if (data.errors) {
@@ -132,22 +204,23 @@ async function handleRegister(e) {
             }
             registerButton.disabled = false;
             registerButton.textContent = 'Create Account';
-            document.getElementById('message-div').setAttribute('tabindex', '-1');
-            document.getElementById('message-div').focus();
             return;
         }
+        
         showMessage(data.message, 'success', 5000);
         setTimeout(() => { window.location.href = '/login.html'; }, 2500);
+        
     } catch (error) {
-        showMessage(error.message, 'error');
+        console.error('Registration error:', error);
+        showMessage(error.message || 'Network error. Please try again.', 'error');
         registerButton.disabled = false;
         registerButton.textContent = 'Create Account';
-        document.getElementById('message-div').setAttribute('tabindex', '-1');
-        document.getElementById('message-div').focus();
     }
 }
+
 function showMessage(message, type = 'info', duration = 3000) {
     // type: 'success', 'error', 'warning', 'info'
+    console.log('Showing message:', message, type); // Debug log
 
     let container = document.getElementById('notification-container');
     if (!container) {
@@ -162,6 +235,7 @@ function showMessage(message, type = 'info', duration = 3000) {
         container.style.alignItems = 'flex-end';
         document.body.appendChild(container);
     }
+    
     const toast = document.createElement('div');
     let icon = '';
     if (type === 'warning') {
@@ -171,8 +245,13 @@ function showMessage(message, type = 'info', duration = 3000) {
     } else if (type === 'error') {
         icon = '<svg class="w-5 h-5 text-red-300 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>';
     }
+    
     toast.className = `mb-2 px-6 py-3 rounded shadow-lg text-white font-medium flex items-center gap-2 animate-fade-in ${type === 'error' ? 'bg-red-600' : type === 'success' ? 'bg-green-600' : type === 'warning' ? 'bg-yellow-500' : 'bg-brand-primary'}`;
     toast.innerHTML = `${icon}<span>${message}</span>`;
     container.appendChild(toast);
-    setTimeout(() => { toast.classList.add('opacity-0'); setTimeout(() => toast.remove(), 500); }, duration);
+    
+    setTimeout(() => { 
+        toast.classList.add('opacity-0'); 
+        setTimeout(() => toast.remove(), 500); 
+    }, duration);
 }

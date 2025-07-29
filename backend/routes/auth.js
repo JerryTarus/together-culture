@@ -73,8 +73,11 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
     const { email, password, rememberMe } = req.body;
     
+    console.log('Login attempt for email:', email);
+    
     // Input validation
     if (!email || !password) {
+        console.log('Login failed: Missing email or password');
         return res.status(400).json({ 
             message: 'Please provide both email and password.',
             errors: {
@@ -87,6 +90,7 @@ router.post('/login', async (req, res) => {
     // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
+        console.log('Login failed: Invalid email format');
         return res.status(400).json({ 
             message: 'Please provide a valid email address.',
             errors: { email: 'Invalid email format' }
@@ -94,6 +98,7 @@ router.post('/login', async (req, res) => {
     }
     
     try {
+        console.log('Searching for user in database...');
         // Find user by email
         const [users] = await db.query(
             'SELECT id, full_name, email, password, role, status, created_at, last_login FROM users WHERE email = ?', 
@@ -101,6 +106,7 @@ router.post('/login', async (req, res) => {
         );
         
         if (users.length === 0) {
+            console.log('Login failed: User not found for email:', email);
             return res.status(401).json({ 
                 message: 'Invalid credentials.',
                 errors: { credentials: 'Email or password is incorrect' }
@@ -108,18 +114,24 @@ router.post('/login', async (req, res) => {
         }
         
         const user = users[0];
+        console.log('User found:', user.email, 'Role:', user.role, 'Status:', user.status);
         
         // Verify password
+        console.log('Verifying password...');
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
+            console.log('Login failed: Invalid password for user:', email);
             return res.status(401).json({ 
                 message: 'Invalid credentials.',
                 errors: { credentials: 'Email or password is incorrect' }
             });
         }
         
+        console.log('Password verified successfully');
+        
         // Check if user is approved (only for non-admin users)
         if (user.role !== 'admin' && user.status !== 'approved') {
+            console.log('Login blocked: User status is', user.status);
             return res.status(403).json({
                 message: user.status === 'pending'
                     ? 'Your account is pending admin approval. You will be able to log in once approved.'
@@ -129,9 +141,20 @@ router.post('/login', async (req, res) => {
         }
         
         // Update last login timestamp
+        console.log('Updating last login timestamp...');
         await db.query('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
         
         // Generate JWT token
+        console.log('Generating JWT token...');
+        
+        if (!process.env.JWT_SECRET) {
+            console.error('JWT_SECRET not found in environment variables');
+            return res.status(500).json({ 
+                message: 'Server configuration error.',
+                errors: { server: 'JWT configuration missing' }
+            });
+        }
+        
         const payload = { 
             id: user.id, 
             role: user.role,
@@ -147,6 +170,7 @@ router.post('/login', async (req, res) => {
         const cookieExpiry = rememberMe ? thirtyDays : oneDay;
         
         // Set secure cookie
+        console.log('Setting authentication cookie...');
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -154,7 +178,7 @@ router.post('/login', async (req, res) => {
             sameSite: 'Lax'
         });
         
-        console.log(`User logged in: ${email} (ID: ${user.id}, Role: ${user.role}, Status: ${user.status})`);
+        console.log(`✅ User logged in successfully: ${email} (ID: ${user.id}, Role: ${user.role}, Status: ${user.status})`);
         
         res.status(200).json({
             message: 'Logged in successfully',
@@ -168,7 +192,7 @@ router.post('/login', async (req, res) => {
             }
         });
     } catch (err) {
-        console.error('Login error:', err);
+        console.error('❌ Login error:', err);
         res.status(500).json({ 
             message: 'Server error during login. Please try again later.',
             errors: { server: 'Internal server error' }

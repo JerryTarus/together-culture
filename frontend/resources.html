@@ -1,94 +1,313 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resources - Together Culture</title>
     <link rel="icon" type="image/png" href="/tfav.png" />
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="./css/style.css" />
-  </head>
-  <body class="bg-gray-100">
-    <div class="flex h-screen">
-      <aside class="w-64 bg-white shadow-md flex flex-col">
-        <div class="p-6">
-          <h1 class="text-2xl font-bold brand-text-dark">CRM Portal</h1>
-        </div>
-        <nav id="sidebar-nav" class="flex-grow px-4"></nav>
-        <div class="p-4">
-          <button
-            id="logout-button"
-            class="w-full text-left p-3 text-gray-600 hover:bg-gray-200 rounded-lg"
-          >
-            Logout
-          </button>
-        </div>
-      </aside>
-
-      <main class="flex-1 p-8 overflow-y-auto">
-        <h2 class="text-3xl font-bold text-gray-800">Resource Library</h2>
-
-        <div
-          id="upload-form-container"
-          class="hidden mt-6 bg-white p-6 rounded-lg shadow-sm"
-        >
-          <h3 class="text-xl font-semibold mb-4">Upload New Resource</h3>
-          <form id="upload-form">
-            <div class="space-y-4">
-              <div>
-                <label
-                  for="title"
-                  class="block text-sm font-medium text-gray-700"
-                  >Resource Title</label
-                >
-                <input
-                  type="text"
-                  id="title"
-                  required
-                  class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"
-                />
-              </div>
-              <div>
-                <label
-                  for="resourceFile"
-                  class="block text-sm font-medium text-gray-700"
-                  >File</label
-                >
-                <input
-                  type="file"
-                  id="resourceFile"
-                  required
-                  class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                />
-              </div>
+    <style>
+        .file-drop-zone {
+            border: 2px dashed #d1d5db;
+            transition: all 0.3s ease;
+        }
+        .file-drop-zone.dragover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .file-item {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+        }
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .progress-bar {
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .file-icon {
+            width: 24px;
+            height: 24px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="main-container flex items-center justify-between h-16">
+            <div class="flex items-center gap-6">
+                <a href="/" class="flex items-center gap-2">
+                    <svg class="h-8 w-8 brand-text-primary" viewBox="0 0 48 48" fill="none">
+                        <path d="M39.5563 34.1455V13.8546C39.5563 15.708 36.8773 17.3437 32.7927 18.3189C30.2914 18.916 27.263 19.2655 24 19.2655C20.737 19.2655 17.7086 18.916 15.2073 18.3189C11.1227 17.3437 8.44365 15.708 8.44365 13.8546V34.1455C8.44365 35.9988 11.1227 37.6346 15.2073 38.6098C17.7086 39.2069 20.737 39.5564 24 39.5564C27.263 39.5564 30.2914 39.2069 32.7927 38.6098C36.8773 37.6346 39.5563 35.9988 39.5563 34.1455Z" fill="currentColor"></path>
+                    </svg>
+                    <h1 class="text-xl font-bold brand-text-dark">Together Culture</h1>
+                </a>
+                <div class="hidden md:flex items-center gap-4">
+                    <a href="/member_dashboard.html" class="text-gray-600 hover:text-gray-900">Dashboard</a>
+                    <a href="/events.html" class="text-gray-600 hover:text-gray-900">Events</a>
+                    <a href="/messages.html" class="text-gray-600 hover:text-gray-900">Messages</a>
+                    <a href="/resources.html" class="text-brand-primary font-medium">Resources</a>
+                </div>
             </div>
-            <div class="mt-6 flex justify-end">
-              <button
-                type="submit"
-                class="bg-brand-primary text-white font-bold py-2 px-4 rounded-lg"
-              >
-                Upload
-              </button>
+            <div class="flex items-center gap-4">
+                <span id="user-name" class="text-sm text-gray-600"></span>
+                <button id="logout-btn" class="text-sm text-red-600 hover:text-red-800">Logout</button>
             </div>
-          </form>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-container py-8">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Resources</h1>
+                <p class="text-gray-600 mt-1">Access and share community documents, templates, and files</p>
+            </div>
+            <div class="flex items-center gap-4 mt-4 sm:mt-0">
+                <button id="upload-resource-btn" class="bg-brand-primary text-white px-6 py-2 rounded-lg font-medium hover:bg-brand-primary/90 transition-colors">
+                    <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                    Upload Resource
+                </button>
+            </div>
         </div>
 
-        <div class="mt-8 flex flex-col md:flex-row gap-6 items-center justify-between">
-          <div class="w-full md:w-1/2">
-            <input id="resource-search" type="text" placeholder="Search resources..." class="w-full border rounded px-3 py-2" />
-          </div>
-          <div id="toast" class="hidden bg-green-100 text-green-800 px-4 py-2 rounded shadow"></div>
+        <!-- Filters -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                    <input type="text" id="search-input" placeholder="Search resources..." 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                    <select id="category-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary">
+                        <option value="all">All Categories</option>
+                        <option value="documentation">Documentation</option>
+                        <option value="templates">Templates</option>
+                        <option value="reports">Reports</option>
+                        <option value="presentations">Presentations</option>
+                        <option value="graphics">Graphics</option>
+                        <option value="finance">Finance</option>
+                        <option value="general">General</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">File Type</label>
+                    <select id="type-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary">
+                        <option value="all">All Types</option>
+                        <option value="document">Documents</option>
+                        <option value="spreadsheet">Spreadsheets</option>
+                        <option value="presentation">Presentations</option>
+                        <option value="image">Images</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+                    <select id="sort-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary">
+                        <option value="created_at">Date Added</option>
+                        <option value="title">Title</option>
+                        <option value="downloads">Downloads</option>
+                        <option value="file_size">File Size</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button id="clear-filters-btn" class="w-full px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">
+                        Clear Filters
+                    </button>
+                </div>
+            </div>
         </div>
-        <div id="drag-upload" class="mt-6 p-6 border-2 border-dashed border-blue-300 rounded-lg flex flex-col items-center justify-center text-blue-600 cursor-pointer hover:bg-blue-50 transition">
-          <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12"/></svg>
-          <span class="font-semibold">Drag & drop files here, or click to select</span>
+
+        <!-- Resources Grid -->
+        <div id="resources-loading" class="flex justify-center py-12">
+            <div class="loading-spinner"></div>
         </div>
-        <div id="resources-list" class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <p>Loading resources...</p>
+        
+        <div id="resources-container" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6"></div>
+        
+        <div id="no-resources" class="hidden text-center py-12">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No resources found</h3>
+            <p class="mt-1 text-sm text-gray-500">Try adjusting your filters or upload a new resource.</p>
         </div>
-      </main>
+
+        <!-- Pagination -->
+        <div id="pagination" class="hidden flex items-center justify-between border-t border-gray-200 pt-6">
+            <div class="flex-1 flex justify-between sm:hidden">
+                <button id="prev-mobile" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Previous
+                </button>
+                <button id="next-mobile" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Next
+                </button>
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Showing <span id="showing-from">1</span> to <span id="showing-to">20</span> of <span id="total-resources">0</span> resources
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                        <button id="prev-desktop" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            Previous
+                        </button>
+                        <div id="page-numbers" class="flex"></div>
+                        <button id="next-desktop" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            Next
+                        </button>
+                    </nav>
+                </div>
+            </div>
+        </div>
     </div>
-    <script src="./js/config.js"></script>
-    <script src="./js/resources.js"></script>
-  </body>
+
+    <!-- Upload Resource Modal -->
+    <div id="upload-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity modal-backdrop" onclick="closeUploadModal()"></div>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                <form id="upload-form" enctype="multipart/form-data">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="flex items-start justify-between mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Upload Resource</h3>
+                            <button type="button" onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-6">
+                            <!-- File Upload Area -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Files *</label>
+                                <div id="file-drop-zone" class="file-drop-zone border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition-colors">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    <div class="mt-4">
+                                        <p class="text-sm text-gray-600">
+                                            <span class="font-medium text-brand-primary hover:text-brand-primary/80">Click to upload</span>
+                                            or drag and drop
+                                        </p>
+                                        <p class="text-xs text-gray-500 mt-1">PNG, JPG, PDF, DOC, XLS, PPT up to 10MB (max 5 files)</p>
+                                    </div>
+                                    <input type="file" id="file-input" name="files" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.txt,.csv,.zip" class="hidden">
+                                </div>
+                                <div id="file-list" class="mt-4 space-y-2"></div>
+                            </div>
+                            
+                            <!-- Resource Details -->
+                            <div class="grid grid-cols-1 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Title *</label>
+                                    <input type="text" id="resource-title" name="title" required
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Description *</label>
+                                    <textarea id="resource-description" name="description" rows="4" required
+                                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary"></textarea>
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                                        <select id="resource-category" name="category" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary">
+                                            <option value="general">General</option>
+                                            <option value="documentation">Documentation</option>
+                                            <option value="templates">Templates</option>
+                                            <option value="reports">Reports</option>
+                                            <option value="presentations">Presentations</option>
+                                            <option value="graphics">Graphics</option>
+                                            <option value="finance">Finance</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Access Level</label>
+                                        <select id="resource-access" name="access_level" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary">
+                                            <option value="all">Everyone</option>
+                                            <option value="members">Members Only</option>
+                                            <option value="admin">Admins Only</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+                                    <input type="text" id="resource-tags" name="tags" placeholder="e.g. guidelines, template, important"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary">
+                                    <p class="text-xs text-gray-500 mt-1">Separate tags with commas</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button type="submit" id="upload-submit-btn" 
+                                class="w-full sm:w-auto sm:ml-3 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="upload-text">Upload Resource</span>
+                            <div class="hidden upload-loading loading-spinner ml-2"></div>
+                        </button>
+                        <button type="button" onclick="closeUploadModal()" 
+                                class="mt-3 sm:mt-0 w-full sm:w-auto inline-flex justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resource Details Modal -->
+    <div id="resource-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity modal-backdrop" onclick="closeResourceModal()"></div>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="flex items-start justify-between mb-4">
+                        <h3 id="resource-modal-title" class="text-lg font-medium text-gray-900"></h3>
+                        <button onclick="closeResourceModal()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="resource-modal-content" class="mt-4"></div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <div id="resource-modal-actions" class="flex gap-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/config.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/resources.js"></script>
+</body>
 </html>

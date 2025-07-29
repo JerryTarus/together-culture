@@ -1,259 +1,480 @@
+// backend/routes/events.js
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const { protect, admin } = require('../middleware/authMiddleware');
 
-// @route   POST /api/events
-// @desc    Create a new event
-// @access  Private/Admin
-// Create a new event (admin only)
-router.post('/', protect, admin, async (req, res) => {
-    const { title, description, event_date, location, capacity } = req.body;
-    if (!title || !description || !event_date || !location) {
-        return res.status(400).json({ message: 'Please provide all event details.' });
-    }
-    const eventCapacity = Number.isInteger(capacity) ? capacity : (parseInt(capacity, 10) || 0);
-    try {
-        const [result] = await db.query(
-            'INSERT INTO events (title, description, event_date, location, capacity) VALUES (?, ?, ?, ?, ?)',
-            [title, description, event_date, location, eventCapacity]
-        );
-        res.status(201).json({ message: 'Event created successfully', eventId: result.insertId });
-    } catch (err) {
-        console.error('Error creating event:', err);
-        res.status(500).json({ message: 'Server error while creating event.' });
-    }
-});
-
-// @route   GET /api/events
-// @desc    Get all events
-// @access  Private
-// Get all events (all members)
+// GET /api/events - Get all events (with filtering and pagination)
 router.get('/', protect, async (req, res) => {
     try {
-        const [events] = await db.query("SELECT *, (SELECT COUNT(*) FROM visits WHERE event_id = events.id) AS registrations FROM events ORDER BY event_date ASC");
-        res.json(events);
-    } catch (err) {
-        console.error('Error fetching events:', err);
-        res.status(500).json({ message: 'Server error while fetching events.' });
-    }
-});
-
-// Get upcoming events
-router.get('/upcoming', protect, async (req, res) => {
-    try {
+        const { 
+            page = 1, 
+            limit = 10, 
+            status = 'all', 
+            search = '',
+            sortBy = 'date',
+            sortOrder = 'ASC'
+        } = req.query;
+        
+        const offset = (page - 1) * limit;
+        
+        let whereClause = '1=1';
+        let queryParams = [];
+        
+        // Filter by status
+        if (status !== 'all') {
+            if (status === 'upcoming') {
+                whereClause += ' AND date >= CURDATE()';
+            } else if (status === 'past') {
+                whereClause += ' AND date < CURDATE()';
+            }
+        }
+        
+        // Search functionality
+        if (search) {
+            whereClause += ' AND (title LIKE ? OR description LIKE ? OR location LIKE ?)';
+            const searchTerm = `%${search}%`;
+            queryParams.push(searchTerm, searchTerm, searchTerm);
+        }
+        
+        // Sort order validation
+        const validSortColumns = ['date', 'title', 'capacity', 'created_at'];
+        const validSortOrders = ['ASC', 'DESC'];
+        const sortColumn = validSortColumns.includes(sortBy) ? sortBy : 'date';
+        const sortDirection = validSortOrders.includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'ASC';
+        
+        // Get total count for pagination
+        const [countResult] = await db.query(
+            `SELECT COUNT(*) as total FROM events WHERE ${whereClause}`,
+            queryParams
+        );
+        const totalEvents = countResult[0].total;
+        
+        // Get events with registration count
         const [events] = await db.query(
-            "SELECT id, title, description, event_date, location, capacity FROM events WHERE event_date >= CURDATE() ORDER BY event_date ASC LIMIT 10"
-        );
-        res.json(events);
-    } catch (err) {
-        console.error('Error fetching upcoming events:', err);
-        res.status(500).json({ message: 'Server error while fetching upcoming events.' });
-    }
-});
-
-// Get attended events count for current user
-router.get('/attended', protect, async (req, res) => {
-    try {
-        const [result] = await db.query(
-            "SELECT COUNT(DISTINCT event_id) as count FROM visits WHERE user_id = ?",
-            [req.user.id]
-        );
-        res.json({ count: result[0].count });
-    } catch (err) {
-        console.error('Error fetching attended events count:', err);
-        res.status(500).json({ message: 'Server error while fetching attended events count.' });
-    }
-});
-
-// Get attendance statistics
-router.get('/attendance-stats', protect, async (req, res) => {
-    try {
-        const [result] = await db.query(
-            "SELECT AVG(attendance_count) as average FROM (SELECT event_id, COUNT(*) as attendance_count FROM visits GROUP BY event_id) as event_attendance"
-        );
-        res.json({ average: result[0].average || 0 });
-    } catch (err) {
-        console.error('Error fetching attendance stats:', err);
-        res.status(500).json({ message: 'Server error while fetching attendance statistics.' });
-    }
-});
-
-// @route   PUT /api/events/:id
-// @desc    Update an event
-// @access  Private/Admin
-// Update an event (admin only)
-router.put('/:id', protect, admin, async (req, res) => {
-    const { title, description, event_date, location, capacity } = req.body;
-    const eventId = parseInt(req.params.id, 10);
-    if (isNaN(eventId)) {
-        return res.status(400).json({ message: 'Invalid event ID.' });
-    }
-    if (!title || !description || !event_date || !location) {
-        return res.status(400).json({ message: 'Please provide all event details.' });
-    }
-    const eventCapacity = Number.isInteger(capacity) ? capacity : (parseInt(capacity, 10) || 0);
-    try {
-        await db.query(
-            'UPDATE events SET title = ?, description = ?, event_date = ?, location = ?, capacity = ? WHERE id = ?',
-            [title, description, event_date, location, eventCapacity, eventId]
-        );
-        res.json({ message: 'Event updated successfully.' });
-    } catch (err) {
-        console.error('Error updating event:', err);
-        res.status(500).json({ message: 'Server error while updating event.' });
-    }
-});
-
-// @route   DELETE /api/events/:id
-// @desc    Delete an event
-// @access  Private/Admin
-// Delete an event (admin only)
-router.delete('/:id', protect, admin, async (req, res) => {
-    const eventId = parseInt(req.params.id, 10);
-    if (isNaN(eventId)) {
-        return res.status(400).json({ message: 'Invalid event ID.' });
-    }
-    try {
-        await db.query('DELETE FROM events WHERE id = ?', [eventId]);
-        res.json({ message: 'Event deleted successfully.' });
-    } catch (err) {
-        console.error('Error deleting event:', err);
-        res.status(500).json({ message: 'Server error while deleting event.' });
-    }
-});
-
-// @route   POST /api/events/:id/visits
-// @desc    Record a member's visit to an event
-// @access  Private/Admin
-router.post('/:id/visits', protect, admin, async (req, res) => {
-    const { user_id, visit_date } = req.body;
-    const eventId = parseInt(req.params.id, 10);
-    
-    if (isNaN(eventId)) {
-        return res.status(400).json({ message: 'Invalid event ID.' });
-    }
-    
-    if (!user_id) {
-        return res.status(400).json({ message: 'Please provide user ID.' });
-    }
-    
-    try {
-        // Check if event exists
-        const [events] = await db.query('SELECT id FROM events WHERE id = ?', [eventId]);
-        if (events.length === 0) {
-            return res.status(404).json({ message: 'Event not found.' });
-        }
-        
-        // Check if user exists
-        const [users] = await db.query('SELECT id FROM users WHERE id = ?', [user_id]);
-        if (users.length === 0) {
-            return res.status(404).json({ message: 'User not found.' });
-        }
-        
-        // Check if visit already exists
-        const [existingVisit] = await db.query(
-            'SELECT id FROM visits WHERE user_id = ? AND event_id = ?',
-            [user_id, eventId]
+            `SELECT 
+                e.*,
+                COUNT(v.id) as registered_count,
+                (CASE WHEN COUNT(v.id) >= e.capacity THEN true ELSE false END) as is_full
+            FROM events e
+            LEFT JOIN visits v ON e.id = v.event_id
+            WHERE ${whereClause}
+            GROUP BY e.id
+            ORDER BY e.${sortColumn} ${sortDirection}
+            LIMIT ? OFFSET ?`,
+            [...queryParams, parseInt(limit), offset]
         );
         
-        if (existingVisit.length > 0) {
-            return res.status(400).json({ message: 'Visit already recorded for this user and event.' });
-        }
-        // --- Capacity enforcement ---
-        const [[eventCapRow]] = await db.query('SELECT capacity FROM events WHERE id = ?', [eventId]);
-        const [[regRow]] = await db.query('SELECT COUNT(*) AS registrations FROM visits WHERE event_id = ?', [eventId]);
-        if (eventCapRow.capacity > 0 && regRow.registrations >= eventCapRow.capacity) {
-            return res.status(400).json({ message: 'Event is full. Registration is closed.' });
-        }
-        
-        const visitDate = visit_date || new Date().toISOString().split('T')[0];
-        
-        const [result] = await db.query(
-            'INSERT INTO visits (user_id, event_id, visit_date) VALUES (?, ?, ?)',
-            [user_id, eventId, visitDate]
-        );
-        
-        res.status(201).json({ 
-            message: 'Visit recorded successfully', 
-            visitId: result.insertId 
+        res.json({
+            events,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total: totalEvents,
+                totalPages: Math.ceil(totalEvents / limit)
+            }
         });
-    } catch (err) {
-        console.error('Error recording visit:', err);
-        res.status(500).json({ message: 'Server error while recording visit.' });
+    } catch (error) {
+        console.error('Error fetching events:', error);
+        res.status(500).json({ message: 'Error fetching events' });
     }
 });
 
-// @route   GET /api/events/:id/visits
-// @desc    Get all visits for an event
-// @access  Private/Admin
-router.get('/:id/visits', protect, admin, async (req, res) => {
-    const eventId = parseInt(req.params.id, 10);
-    
-    if (isNaN(eventId)) {
-        return res.status(400).json({ message: 'Invalid event ID.' });
-    }
-    
+// GET /api/events/:id - Get single event with details
+router.get('/:id', protect, async (req, res) => {
     try {
-        const [visits] = await db.query(`
-            SELECT v.id, v.visit_date, u.id as user_id, u.full_name, u.email
+        const { id } = req.params;
+        
+        // Get event details
+        const [events] = await db.query(
+            `SELECT 
+                e.*,
+                COUNT(v.id) as registered_count,
+                (CASE WHEN COUNT(v.id) >= e.capacity THEN true ELSE false END) as is_full
+            FROM events e
+            LEFT JOIN visits v ON e.id = v.event_id
+            WHERE e.id = ?
+            GROUP BY e.id`,
+            [id]
+        );
+        
+        if (events.length === 0) {
+            return res.status(404).json({ message: 'Event not found' });
+        }
+        
+        const event = events[0];
+        
+        // Get registered users for this event
+        const [registrations] = await db.query(
+            `SELECT 
+                v.id as visit_id,
+                v.created_at as registered_at,
+                u.id as user_id,
+                u.full_name,
+                u.email
             FROM visits v
             JOIN users u ON v.user_id = u.id
             WHERE v.event_id = ?
-            ORDER BY v.visit_date DESC
-        `, [eventId]);
+            ORDER BY v.created_at ASC`,
+            [id]
+        );
         
-        res.json(visits);
-    } catch (err) {
-        console.error('Error fetching visits:', err);
-        res.status(500).json({ message: 'Server error while fetching visits.' });
+        // Check if current user is registered
+        const [userRegistration] = await db.query(
+            'SELECT id FROM visits WHERE event_id = ? AND user_id = ?',
+            [id, req.user.id]
+        );
+        
+        res.json({
+            ...event,
+            registrations,
+            is_user_registered: userRegistration.length > 0,
+            user_registration_id: userRegistration.length > 0 ? userRegistration[0].id : null
+        });
+    } catch (error) {
+        console.error('Error fetching event:', error);
+        res.status(500).json({ message: 'Error fetching event details' });
     }
 });
 
-// @route   GET /api/events/visits/user/:userId
-// @desc    Get all visits for a specific user (member activity)
-// @access  Private/Admin
-router.get('/visits/user/:userId', protect, admin, async (req, res) => {
-    const userId = parseInt(req.params.userId, 10);
-    
-    if (isNaN(userId)) {
-        return res.status(400).json({ message: 'Invalid user ID.' });
-    }
-    
+// POST /api/events - Create new event (admin only)
+router.post('/', protect, admin, async (req, res) => {
     try {
-        const [visits] = await db.query(`
-            SELECT v.id, v.visit_date, e.id as event_id, e.title as event_title, 
-                   e.description as event_description, e.event_date, e.location
-            FROM visits v
-            JOIN events e ON v.event_id = e.id
-            WHERE v.user_id = ?
-            ORDER BY v.visit_date DESC
-        `, [userId]);
+        const { title, description, date, time, location, capacity } = req.body;
         
-        res.json(visits);
-    } catch (err) {
-        console.error('Error fetching user visits:', err);
-        res.status(500).json({ message: 'Server error while fetching user visits.' });
+        // Validation
+        if (!title || !description || !date || !time || !location || !capacity) {
+            return res.status(400).json({ 
+                message: 'All fields are required',
+                errors: {
+                    title: !title ? 'Title is required' : null,
+                    description: !description ? 'Description is required' : null,
+                    date: !date ? 'Date is required' : null,
+                    time: !time ? 'Time is required' : null,
+                    location: !location ? 'Location is required' : null,
+                    capacity: !capacity ? 'Capacity is required' : null
+                }
+            });
+        }
+        
+        // Validate capacity is a positive number
+        if (!Number.isInteger(parseInt(capacity)) || parseInt(capacity) <= 0) {
+            return res.status(400).json({ 
+                message: 'Capacity must be a positive number',
+                errors: { capacity: 'Must be a positive number' }
+            });
+        }
+        
+        // Validate date is not in the past
+        const eventDate = new Date(`${date} ${time}`);
+        if (eventDate < new Date()) {
+            return res.status(400).json({ 
+                message: 'Event date cannot be in the past',
+                errors: { date: 'Cannot be in the past' }
+            });
+        }
+        
+        const [result] = await db.query(
+            `INSERT INTO events (title, description, date, time, location, capacity, created_by)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [title, description, date, time, location, parseInt(capacity), req.user.id]
+        );
+        
+        // Get the created event
+        const [newEvent] = await db.query('SELECT * FROM events WHERE id = ?', [result.insertId]);
+        
+        console.log(`✅ Event created: ${title} by ${req.user.email}`);
+        
+        res.status(201).json({
+            message: 'Event created successfully',
+            event: newEvent[0]
+        });
+    } catch (error) {
+        console.error('Error creating event:', error);
+        res.status(500).json({ message: 'Error creating event' });
     }
 });
 
-// @route   DELETE /api/events/:id/visits/:visitId
-// @desc    Delete a visit record
-// @access  Private/Admin
-router.delete('/:id/visits/:visitId', protect, admin, async (req, res) => {
-    const eventId = parseInt(req.params.id, 10);
-    const visitId = parseInt(req.params.visitId, 10);
-    
-    if (isNaN(eventId) || isNaN(visitId)) {
-        return res.status(400).json({ message: 'Invalid event or visit ID.' });
-    }
-    
+// PUT /api/events/:id - Update event (admin only)
+router.put('/:id', protect, admin, async (req, res) => {
     try {
-        await db.query('DELETE FROM visits WHERE id = ? AND event_id = ?', [visitId, eventId]);
-        res.json({ message: 'Visit deleted successfully.' });
-    } catch (err) {
-        console.error('Error deleting visit:', err);
-        res.status(500).json({ message: 'Server error while deleting visit.' });
+        const { id } = req.params;
+        const { title, description, date, time, location, capacity } = req.body;
+        
+        // Check if event exists
+        const [existingEvents] = await db.query('SELECT * FROM events WHERE id = ?', [id]);
+        if (existingEvents.length === 0) {
+            return res.status(404).json({ message: 'Event not found' });
+        }
+        
+        // Validation
+        if (!title || !description || !date || !time || !location || !capacity) {
+            return res.status(400).json({ 
+                message: 'All fields are required',
+                errors: {
+                    title: !title ? 'Title is required' : null,
+                    description: !description ? 'Description is required' : null,
+                    date: !date ? 'Date is required' : null,
+                    time: !time ? 'Time is required' : null,
+                    location: !location ? 'Location is required' : null,
+                    capacity: !capacity ? 'Capacity is required' : null
+                }
+            });
+        }
+        
+        // Validate capacity
+        if (!Number.isInteger(parseInt(capacity)) || parseInt(capacity) <= 0) {
+            return res.status(400).json({ 
+                message: 'Capacity must be a positive number',
+                errors: { capacity: 'Must be a positive number' }
+            });
+        }
+        
+        // Check if reducing capacity below current registrations
+        const [registrationCount] = await db.query(
+            'SELECT COUNT(*) as count FROM visits WHERE event_id = ?',
+            [id]
+        );
+        
+        if (parseInt(capacity) < registrationCount[0].count) {
+            return res.status(400).json({ 
+                message: `Cannot reduce capacity below current registrations (${registrationCount[0].count})`,
+                errors: { capacity: `Must be at least ${registrationCount[0].count}` }
+            });
+        }
+        
+        await db.query(
+            `UPDATE events 
+             SET title = ?, description = ?, date = ?, time = ?, location = ?, capacity = ?, updated_at = NOW()
+             WHERE id = ?`,
+            [title, description, date, time, location, parseInt(capacity), id]
+        );
+        
+        // Get the updated event
+        const [updatedEvent] = await db.query('SELECT * FROM events WHERE id = ?', [id]);
+        
+        console.log(`✅ Event updated: ${title} by ${req.user.email}`);
+        
+        res.json({
+            message: 'Event updated successfully',
+            event: updatedEvent[0]
+        });
+    } catch (error) {
+        console.error('Error updating event:', error);
+        res.status(500).json({ message: 'Error updating event' });
+    }
+});
+
+// DELETE /api/events/:id - Delete event (admin only)
+router.delete('/:id', protect, admin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // Check if event exists
+        const [existingEvents] = await db.query('SELECT title FROM events WHERE id = ?', [id]);
+        if (existingEvents.length === 0) {
+            return res.status(404).json({ message: 'Event not found' });
+        }
+        
+        const eventTitle = existingEvents[0].title;
+        
+        // Delete associated visits first (foreign key constraint)
+        await db.query('DELETE FROM visits WHERE event_id = ?', [id]);
+        
+        // Delete the event
+        await db.query('DELETE FROM events WHERE id = ?', [id]);
+        
+        console.log(`✅ Event deleted: ${eventTitle} by ${req.user.email}`);
+        
+        res.json({ message: 'Event deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting event:', error);
+        res.status(500).json({ message: 'Error deleting event' });
+    }
+});
+
+// POST /api/events/:id/register - Register for event
+router.post('/:id/register', protect, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+        
+        // Check if event exists
+        const [events] = await db.query(
+            `SELECT 
+                e.*,
+                COUNT(v.id) as registered_count
+            FROM events e
+            LEFT JOIN visits v ON e.id = v.event_id
+            WHERE e.id = ?
+            GROUP BY e.id`,
+            [id]
+        );
+        
+        if (events.length === 0) {
+            return res.status(404).json({ message: 'Event not found' });
+        }
+        
+        const event = events[0];
+        
+        // Check if event is in the future
+        const eventDateTime = new Date(`${event.date} ${event.time}`);
+        if (eventDateTime < new Date()) {
+            return res.status(400).json({ 
+                message: 'Cannot register for past events',
+                errors: { event: 'Event has already occurred' }
+            });
+        }
+        
+        // Check if already registered
+        const [existingRegistration] = await db.query(
+            'SELECT id FROM visits WHERE event_id = ? AND user_id = ?',
+            [id, userId]
+        );
+        
+        if (existingRegistration.length > 0) {
+            return res.status(400).json({ 
+                message: 'You are already registered for this event',
+                errors: { registration: 'Already registered' }
+            });
+        }
+        
+        // Check capacity
+        if (event.registered_count >= event.capacity) {
+            return res.status(400).json({ 
+                message: 'Event is at full capacity',
+                errors: { capacity: 'Event is full' }
+            });
+        }
+        
+        // Register user for event
+        const [result] = await db.query(
+            'INSERT INTO visits (user_id, event_id, created_at) VALUES (?, ?, NOW())',
+            [userId, id]
+        );
+        
+        console.log(`✅ User registered for event: ${req.user.email} -> ${event.title}`);
+        
+        res.status(201).json({
+            message: 'Successfully registered for event',
+            registration_id: result.insertId
+        });
+    } catch (error) {
+        console.error('Error registering for event:', error);
+        res.status(500).json({ message: 'Error registering for event' });
+    }
+});
+
+// DELETE /api/events/:id/register - Unregister from event
+router.delete('/:id/register', protect, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+        
+        // Check if registration exists
+        const [existingRegistration] = await db.query(
+            'SELECT id FROM visits WHERE event_id = ? AND user_id = ?',
+            [id, userId]
+        );
+        
+        if (existingRegistration.length === 0) {
+            return res.status(404).json({ 
+                message: 'You are not registered for this event',
+                errors: { registration: 'Not registered' }
+            });
+        }
+        
+        // Get event details for logging
+        const [events] = await db.query('SELECT title FROM events WHERE id = ?', [id]);
+        const eventTitle = events.length > 0 ? events[0].title : 'Unknown Event';
+        
+        // Unregister user
+        await db.query('DELETE FROM visits WHERE event_id = ? AND user_id = ?', [id, userId]);
+        
+        console.log(`✅ User unregistered from event: ${req.user.email} -> ${eventTitle}`);
+        
+        res.json({ message: 'Successfully unregistered from event' });
+    } catch (error) {
+        console.error('Error unregistering from event:', error);
+        res.status(500).json({ message: 'Error unregistering from event' });
+    }
+});
+
+// GET /api/events/upcoming - Get upcoming events (optimized)
+router.get('/upcoming', protect, async (req, res) => {
+    try {
+        const { limit = 10 } = req.query;
+        
+        const [events] = await db.query(
+            `SELECT 
+                e.*,
+                COUNT(v.id) as registered_count,
+                (CASE WHEN COUNT(v.id) >= e.capacity THEN true ELSE false END) as is_full,
+                (CASE WHEN uv.id IS NOT NULL THEN true ELSE false END) as is_user_registered
+            FROM events e
+            LEFT JOIN visits v ON e.id = v.event_id
+            LEFT JOIN visits uv ON e.id = uv.event_id AND uv.user_id = ?
+            WHERE e.date >= CURDATE()
+            GROUP BY e.id
+            ORDER BY e.date ASC, e.time ASC
+            LIMIT ?`,
+            [req.user.id, parseInt(limit)]
+        );
+        
+        res.json({ events });
+    } catch (error) {
+        console.error('Error fetching upcoming events:', error);
+        res.status(500).json({ message: 'Error fetching upcoming events' });
+    }
+});
+
+// GET /api/events/attended - Get count of events attended by user
+router.get('/attended', protect, async (req, res) => {
+    try {
+        const [result] = await db.query(
+            `SELECT COUNT(DISTINCT v.event_id) as count
+             FROM visits v
+             JOIN events e ON v.event_id = e.id
+             WHERE v.user_id = ? AND e.date < CURDATE()`,
+            [req.user.id]
+        );
+        
+        res.json({ count: result[0].count });
+    } catch (error) {
+        console.error('Error fetching attended events count:', error);
+        res.status(500).json({ message: 'Error fetching attended events count' });
+    }
+});
+
+// GET /api/events/attendance-stats - Get average attendance stats
+router.get('/attendance-stats', protect, admin, async (req, res) => {
+    try {
+        const [result] = await db.query(
+            `SELECT 
+                AVG(attendance_count) as average_attendance,
+                COUNT(e.id) as total_events,
+                SUM(attendance_count) as total_attendance
+            FROM (
+                SELECT 
+                    e.id,
+                    COUNT(v.id) as attendance_count
+                FROM events e
+                LEFT JOIN visits v ON e.id = v.event_id
+                WHERE e.date < CURDATE()
+                GROUP BY e.id
+            ) as e`
+        );
+        
+        const stats = result[0];
+        
+        res.json({
+            average_attendance: Math.round(stats.average_attendance || 0),
+            total_events: stats.total_events || 0,
+            total_attendance: stats.total_attendance || 0
+        });
+    } catch (error) {
+        console.error('Error fetching attendance stats:', error);
+        res.status(500).json({ message: 'Error fetching attendance stats' });
     }
 });
 

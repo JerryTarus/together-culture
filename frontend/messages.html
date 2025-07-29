@@ -1,76 +1,297 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Messages - Together Culture</title>
     <link rel="icon" type="image/png" href="/tfav.png" />
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="./css/style.css" />
-  </head>
-  <body class="bg-gray-100">
-    <div class="flex h-screen">
-      <aside class="w-64 bg-white shadow-md flex flex-col">
-        <div class="p-6">
-          <h1 class="text-2xl font-bold brand-text-dark">CRM Portal</h1>
-        </div>
-        <nav id="sidebar-nav" class="flex-grow px-4"></nav>
-        <div class="p-4">
-          <button
-            id="logout-button"
-            class="w-full text-left p-3 text-gray-600 hover:bg-gray-200 rounded-lg"
-          >
-            Logout
-          </button>
-        </div>
-      </aside>
-
-      <main class="flex-1 p-8 overflow-y-auto">
-        <h2 class="text-3xl font-bold text-gray-800">Messages</h2>
-
-        <div class="flex gap-8 mt-8">
-          <!-- Left: Directory & Conversations -->
-          <div class="w-1/3 bg-white rounded-lg shadow-sm p-4 flex flex-col gap-6 min-h-[600px]">
-            <div>
-              <h3 class="text-lg font-semibold mb-2">Member Directory</h3>
-              <div id="member-directory" class="flex flex-col gap-2 overflow-y-auto max-h-48">
-                <!-- Example member with avatar -->
-                <!--
-                <div class="flex items-center gap-3 p-2 rounded hover:bg-gray-100 cursor-pointer">
-                  <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600">AB</div>
-                  <span class="font-medium text-gray-700">Alice Brown</span>
+    <style>
+        .message-bubble {
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        .message-sent {
+            background-color: #3b82f6;
+            color: white;
+            margin-left: auto;
+        }
+        .message-received {
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+        .conversation-item:hover {
+            background-color: #f9fafb;
+        }
+        .conversation-item.active {
+            background-color: #eff6ff;
+            border-right: 3px solid #3b82f6;
+        }
+        .chat-container {
+            height: calc(100vh - 140px);
+        }
+        .messages-area {
+            height: calc(100% - 80px);
+            overflow-y: auto;
+        }
+        .compose-area {
+            height: 80px;
+        }
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .unread-badge {
+            background-color: #ef4444;
+            color: white;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            min-width: 18px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="main-container flex items-center justify-between h-16">
+            <div class="flex items-center gap-6">
+                <a href="/" class="flex items-center gap-2">
+                    <svg class="h-8 w-8 brand-text-primary" viewBox="0 0 48 48" fill="none">
+                        <path d="M39.5563 34.1455V13.8546C39.5563 15.708 36.8773 17.3437 32.7927 18.3189C30.2914 18.916 27.263 19.2655 24 19.2655C20.737 19.2655 17.7086 18.916 15.2073 18.3189C11.1227 17.3437 8.44365 15.708 8.44365 13.8546V34.1455C8.44365 35.9988 11.1227 37.6346 15.2073 38.6098C17.7086 39.2069 20.737 39.5564 24 39.5564C27.263 39.5564 30.2914 39.2069 32.7927 38.6098C36.8773 37.6346 39.5563 35.9988 39.5563 34.1455Z" fill="currentColor"></path>
+                    </svg>
+                    <h1 class="text-xl font-bold brand-text-dark">Together Culture</h1>
+                </a>
+                <div class="hidden md:flex items-center gap-4">
+                    <a href="/member_dashboard.html" class="text-gray-600 hover:text-gray-900">Dashboard</a>
+                    <a href="/events.html" class="text-gray-600 hover:text-gray-900">Events</a>
+                    <a href="/messages.html" class="text-brand-primary font-medium">Messages</a>
+                    <a href="/resources.html" class="text-gray-600 hover:text-gray-900">Resources</a>
                 </div>
-                -->
-              </div>
             </div>
-            <div>
-              <h3 class="text-lg font-semibold mb-2">Conversations</h3>
-              <div id="conversation-list" class="flex flex-col gap-2 overflow-y-auto max-h-72"></div>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <span id="unread-count" class="hidden unread-badge">0</span>
+                    <span id="user-name" class="text-sm text-gray-600"></span>
+                </div>
+                <button id="logout-btn" class="text-sm text-red-600 hover:text-red-800">Logout</button>
             </div>
-          </div>
-          <!-- Right: Chat Window -->
-          <div class="flex-1 bg-white rounded-lg shadow-sm p-4 min-h-[600px] flex flex-col">
-            <div id="chat-window" class="flex flex-col h-full hidden">
-              <div id="chat-header" class="text-xl font-bold mb-4 flex items-center gap-3">
-                <!-- Avatar for conversation partner -->
-                <div id="chat-avatar" class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 text-lg"></div>
-                <span id="chat-header-name"></span>
-              </div>
-              <div id="chat-notifications" class="mb-2 text-sm text-brand-primary"></div>
-              <div id="chat-messages" class="flex-1 overflow-y-auto border rounded p-3 bg-gray-50 mb-4" style="min-height:300px;"></div>
-              <form id="chat-form" class="flex gap-2 items-center">
-                <button type="button" id="emoji-btn" class="text-2xl px-2" title="Add emoji">😊</button>
-                <input id="chat-input" type="text" placeholder="Type your message..." class="flex-1 border rounded px-3 py-2" required autocomplete="off" />
-                <button type="submit" class="bg-brand-primary text-white px-4 py-2 rounded">Send</button>
-              </form>
-              <div id="typing-indicator" class="text-xs text-gray-400 mt-1 h-4"></div>
-            </div>
-            <div id="chat-placeholder" class="flex-1 flex items-center justify-center text-gray-400">Select a member or conversation to start chatting.</div>
-          </div>
         </div>
-      </main>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="flex h-screen bg-gray-50">
+        <!-- Conversations Sidebar -->
+        <div class="w-1/3 bg-white border-r border-gray-200 flex flex-col">
+            <!-- Sidebar Header -->
+            <div class="p-4 border-b border-gray-200">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-gray-900">Messages</h2>
+                    <button id="new-conversation-btn" class="bg-brand-primary text-white p-2 rounded-lg hover:bg-brand-primary/90 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="relative">
+                    <input type="text" id="search-conversations" placeholder="Search conversations..." 
+                           class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary">
+                    <svg class="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Conversations List -->
+            <div class="flex-1 overflow-y-auto">
+                <div id="conversations-loading" class="flex justify-center items-center h-32">
+                    <div class="loading-spinner"></div>
+                </div>
+                <div id="conversations-list" class="hidden"></div>
+                <div id="no-conversations" class="hidden text-center py-12 px-4">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                    </svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">No conversations</h3>
+                    <p class="mt-1 text-sm text-gray-500">Start a new conversation to get started.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="flex-1 flex flex-col">
+            <!-- Welcome State -->
+            <div id="welcome-state" class="flex-1 flex items-center justify-center">
+                <div class="text-center">
+                    <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                    </svg>
+                    <h2 class="mt-4 text-xl font-medium text-gray-900">Welcome to Messages</h2>
+                    <p class="mt-2 text-gray-500">Select a conversation or start a new one to begin messaging.</p>
+                </div>
+            </div>
+
+            <!-- Chat Container -->
+            <div id="chat-container" class="hidden flex-1 flex flex-col chat-container">
+                <!-- Chat Header -->
+                <div class="bg-white border-b border-gray-200 p-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-brand-primary rounded-full flex items-center justify-center text-white font-medium">
+                                <span id="chat-avatar"></span>
+                            </div>
+                            <div>
+                                <h3 id="chat-title" class="font-medium text-gray-900"></h3>
+                                <p id="chat-subtitle" class="text-sm text-gray-500"></p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button id="conversation-info-btn" class="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </button>
+                            <button id="leave-conversation-btn" class="p-2 text-gray-400 hover:text-red-600 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages Area -->
+                <div id="messages-area" class="flex-1 p-4 messages-area bg-gray-50">
+                    <div id="messages-loading" class="flex justify-center items-center h-full">
+                        <div class="loading-spinner"></div>
+                    </div>
+                    <div id="messages-container" class="hidden space-y-4"></div>
+                </div>
+
+                <!-- Message Compose Area -->
+                <div class="bg-white border-t border-gray-200 p-4 compose-area">
+                    <form id="message-form" class="flex items-end gap-3">
+                        <div class="flex-1">
+                            <textarea id="message-input" 
+                                    placeholder="Type your message..." 
+                                    rows="2"
+                                    maxlength="1000"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary resize-none"></textarea>
+                            <div class="flex items-center justify-between mt-1">
+                                <span id="char-count" class="text-xs text-gray-400">0/1000</span>
+                            </div>
+                        </div>
+                        <button type="submit" id="send-btn" 
+                                class="bg-brand-primary text-white p-3 rounded-lg hover:bg-brand-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
-    <script src="./js/config.js"></script>
-    <script src="./js/messages.js"></script>
-  </body>
+
+    <!-- New Conversation Modal -->
+    <div id="new-conversation-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity modal-backdrop" onclick="closeNewConversationModal()"></div>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="flex items-start justify-between mb-4">
+                        <h3 class="text-lg font-medium text-gray-900">Start New Conversation</h3>
+                        <button onclick="closeNewConversationModal()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Search Users</label>
+                            <input type="text" id="user-search" placeholder="Search by name or email..." 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Select Users</label>
+                            <div id="users-list" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md">
+                                <div id="users-loading" class="flex justify-center py-8">
+                                    <div class="loading-spinner"></div>
+                                </div>
+                                <div id="users-container" class="hidden"></div>
+                                <div id="no-users" class="hidden text-center py-8 text-gray-500">
+                                    No users found
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="group-options" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Group Name</label>
+                            <input type="text" id="group-name" placeholder="Enter group name..." 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary">
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button id="create-conversation-btn" disabled
+                            class="w-full sm:w-auto sm:ml-3 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span class="create-text">Start Conversation</span>
+                        <div class="hidden create-loading loading-spinner ml-2"></div>
+                    </button>
+                    <button onclick="closeNewConversationModal()" 
+                            class="mt-3 sm:mt-0 w-full sm:w-auto inline-flex justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conversation Info Modal -->
+    <div id="conversation-info-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity modal-backdrop" onclick="closeConversationInfoModal()"></div>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="flex items-start justify-between mb-4">
+                        <h3 class="text-lg font-medium text-gray-900">Conversation Details</h3>
+                        <button onclick="closeConversationInfoModal()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div id="conversation-info-content"></div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button onclick="closeConversationInfoModal()" 
+                            class="w-full sm:w-auto inline-flex justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/config.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/messages.js"></script>
+</body>
 </html>

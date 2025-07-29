@@ -1,387 +1,454 @@
-# Together Culture CRM
+# Together Culture CRM Application
 
-A comprehensive full-stack Customer Relationship Management (CRM) web application built specifically for Together Culture, a Community Interest Company. This platform facilitates the transition from manual member management to a complete digital solution, supporting community building, event management, visit tracking, resource sharing, and internal communication.
+A comprehensive Customer Relationship Management (CRM) system built for community organizations to manage members, events, resources, and communications.
 
-## 🎯 Project Overview
+## 🚀 Features
 
-Together Culture is a Community Interest Company that gathers a membership community united in their desire to help create a more equitable and ecological creative economy. The organization provides facilities, creative leadership, entrepreneurial development, momentum, structure, and resources for people to come together and make change happen.
+### ✅ **Core Functionality**
+- **User Authentication & Authorization** - Secure login/registration with role-based access control
+- **Member Management** - Admin approval workflow with user status tracking (pending/approved/rejected)
+- **Events Management** - Full CRUD operations with registration, capacity limits, and calendar integration
+- **Resource Management** - File upload/download system with categorization and access controls
+- **Messaging System** - Real-time communication with group and direct conversations
+- **User Settings** - Complete profile management with avatar upload and preferences
 
-This CRM system addresses the organization's need to transition from manual customer data management to a sophisticated digital solution that can scale with their growing community.
+### 📊 **Advanced Analytics**
+- **Member Engagement Scoring** - Activity-based ranking system with weighted metrics
+- **Dashboard Analytics** - Comprehensive statistics and member activity tracking
+- **Event Performance Metrics** - Registration vs attendance analysis
+- **Resource Usage Analytics** - Download patterns and popular content tracking
 
-## 🚀 Complete Feature Set
+### 🔧 **System Features**
+- **Admin Dashboard** - Modern CRM interface with complete member oversight
+- **Member Dashboard** - Personalized user experience with activity feeds
+- **File Management** - Secure file upload with virus scanning and access controls
+- **Real-time Updates** - Live notifications and dynamic content updates
+- **Responsive Design** - Mobile-friendly interface with modern UI/UX
 
-### 🔐 Authentication & Security System
-- **JWT-based Authentication:** Secure login with HTTP-only cookies
-- **Role-Based Access Control:** Strict separation between admin and member permissions
-- **Password Security:** Bcrypt hashing with salt rounds for password protection
-- **Session Management:** Automatic logout and session validation
-- **Protected Routes:** Middleware-based route protection for all sensitive pages
-- **CORS Configuration:** Flexible cross-origin resource sharing for development
+## 🛠 Technology Stack
 
-### 👨‍💼 Administrator Features
+### Backend
+- **Node.js** with Express.js framework
+- **MySQL** database with mysql2/promise driver
+- **JWT Authentication** with HTTP-only cookies
+- **bcryptjs** for password hashing
+- **Multer** for file upload handling
+- **CORS** configuration for cross-origin requests
 
-#### **Dashboard & Analytics**
-- **Comprehensive Dashboard:** Real-time overview of key community metrics
-- **Member Statistics:** Total member count with growth tracking
-- **Event Analytics:** Total events created and upcoming event counts
-- **Visit Metrics:** Complete visit tracking with attendance statistics
-- **Activity Monitoring:** Recent activity logs and engagement metrics
+### Frontend
+- **Vanilla JavaScript** (ES6+)
+- **Tailwind CSS** for responsive styling
+- **HTML5** semantic structure
+- **Modern Browser APIs** for file handling and notifications
 
-#### **Member Management System**
-- **Complete Member Directory:** Searchable, sortable member database
-- **Full CRUD Operations:** Create, Read, Update, Delete member records
-- **Profile Management:** Edit member details including bio, skills, contact information
-- **Role Management:** Assign and modify user roles (admin/member)
-- **Member Activity Tracking:** Comprehensive view of individual member engagement
-- **Advanced Search:** Filter and search members by various criteria
-- **Bulk Operations:** Mass member management capabilities
+### Database Schema
+- **Users** - Authentication, profiles, preferences
+- **Events** - Event management with capacity tracking
+- **Resources** - File metadata and access controls
+- **Messages & Conversations** - Real-time messaging system
+- **Visits** - Event attendance tracking
 
-#### **Event Management Platform**
-- **Event Creation:** Create detailed events with title, description, date, location
-- **Event Editing:** Modify existing event details and information
-- **Event Deletion:** Remove events with cascading data cleanup
-- **Event Calendar:** Chronological view of all community events
-- **Event Details:** Rich event descriptions with multimedia support
-
-#### **Visit Tracking & Attendance**
-- **Attendance Recording:** Log member visits to specific events
-- **Visit History:** Complete chronological record of member attendance
-- **Attendance Analytics:** Track engagement patterns and frequency
-- **Visit Validation:** Prevent duplicate visit records
-- **Date Tracking:** Accurate visit date logging with validation
-- **Bulk Check-in:** Efficient mass attendance recording
-
-#### **Member Activity Intelligence**
-- **Individual Activity Logs:** Detailed timeline of member engagement
-- **Event Participation:** Track which events each member has attended
-- **Communication History:** View messaging activity for each member
-- **Engagement Metrics:** Analyze member involvement and participation
-- **Activity Export:** Generate reports on member engagement
-
-#### **Resource Management Library**
-- **File Upload System:** Secure document and media uploads
-- **File Organization:** Categorized resource library management
-- **Access Control:** Manage who can view and download resources
-- **File Validation:** Security checks for uploaded content
-- **Storage Management:** Organized file system with proper naming
-
-#### **Communication Platform**
-- **Two-Way Messaging:** Direct messaging with members
-- **Conversation Management:** Organized chat threads
-- **Message History:** Complete communication records
-- **Unread Tracking:** Monitor message status and responses
-- **Bulk Messaging:** Broadcast capabilities to multiple members
-
-### 👥 Member Features
-
-#### **Personal Dashboard**
-- **Member Portal:** Personalized dashboard with relevant information
-- **Profile Overview:** Quick access to personal information and stats
-- **Activity Summary:** Personal engagement metrics and history
-- **Quick Navigation:** Easy access to all platform features
-
-#### **Profile & Settings Management**
-- **Profile Editing:** Update personal information, bio, and skills
-- **Password Management:** Secure password change functionality
-- **Email Updates:** Modify contact information
-- **Privacy Settings:** Control personal information visibility
-- **Account Security:** Manage authentication preferences
-
-#### **Event Discovery & Participation**
-- **Event Catalog:** Browse all available community events
-- **Event Details:** View comprehensive event information
-- **Event Calendar:** Visual calendar interface for event planning
-- **Personal Schedule:** Track events of interest
-- **Event History:** View past event participation
-
-#### **Resource Access Center**
-- **Resource Library:** Browse and access shared documents
-- **Download Center:** Secure file download functionality
-- **Resource Search:** Find specific documents and materials
-- **Category Browsing:** Navigate resources by type or topic
-- **Recent Resources:** Quick access to newly added materials
-
-#### **Interactive Communication**
-- **Direct Messaging:** Chat with admins and other members
-- **Conversation Threads:** Organized message history
-- **Real-time Notifications:** Unread message indicators
-- **Member Directory:** Browse and connect with other members
-- **Communication Preferences:** Manage notification settings
-
-### 🎨 User Experience & Design
-
-#### **Responsive Design System**
-- **Mobile-First:** Optimized for all device sizes
-- **Tailwind CSS:** Modern, utility-first styling framework
-- **Brand Consistency:** Together Culture's visual identity throughout
-- **Accessibility:** WCAG-compliant design principles
-- **Intuitive Navigation:** User-friendly interface design
-
-#### **Performance & Optimization**
-- **Fast Loading:** Optimized assets and efficient code
-- **Smooth Interactions:** Responsive UI with loading states
-- **Error Handling:** Comprehensive error management and user feedback
-- **Form Validation:** Real-time validation with helpful messages
-- **Progressive Enhancement:** Works across different browser capabilities
-
-## 🛠️ Technology Stack
-
-- **Frontend:** HTML, CSS, Vanilla JavaScript (No frameworks)
-- **Backend:** Node.js with Express
-- **Database:** MySQL
-
-## ⚙️ Project Setup and Installation
+## 🚀 Quick Start
 
 ### Prerequisites
+- Node.js (v14 or higher)
+- MySQL Server (v8.0 or higher)
+- Modern web browser
 
-- [Node.js](https://nodejs.org/) (v18 or later recommended)
-- A MySQL server (e.g., via [XAMPP](https://www.apachefriends.org/index.html))
+### Installation
 
-### Installation Steps
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd together-culture-main
+   ```
 
-1.  **Clone the Repository**
-
-    ```bash
-    git clone <your-repository-url>
-    cd together-culture-crm
-    ```
-
-2.  **Backend Setup**
-
-    - Navigate to the backend directory: `cd backend`
-    - Install dependencies: `npm install`
-    - Create a `.env` file in the `backend` directory and add your credentials:
-      ```env
-      DB_HOST=localhost
-      DB_USER=root
-      DB_PASSWORD=
-      DB_NAME=together_culture
-      JWT_SECRET=your_super_secret_key_here
-      ```
-    - Start your MySQL server (e.g., via XAMPP).
-    - Create a new database named `together_culture`.
-    - Import the database schema by executing the SQL statements below in your database client.
-
-3.  **Running the Application**
-    - In the `backend` directory, start the server:
-      ```bash
-      npm start
-      ```
-    - The application will be available at `http://localhost:5000`.
-
-## 🗃️ Database Schema
-
-The application uses a MySQL database with the following tables:
-
-```sql
--- Users table for authentication and profiles
-CREATE TABLE users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    full_name VARCHAR(100),
-    email VARCHAR(100) UNIQUE,
-    password VARCHAR(255),
-    role ENUM('admin', 'member') DEFAULT 'member',
-    bio TEXT,
-    skills TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
-
--- Events table for community events
-CREATE TABLE events (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    title VARCHAR(150),
-    description TEXT,
-    event_date DATE,
-    location VARCHAR(100)
-) ENGINE=InnoDB;
-
--- Visits table for tracking event attendance
-CREATE TABLE visits (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    event_id INT NOT NULL,
-    visit_date DATE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
--- Conversations table for messaging system
-CREATE TABLE conversations (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user1_id INT NOT NULL,
-    user2_id INT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY unique_pair (user1_id, user2_id),
-    CONSTRAINT fk_user1 FOREIGN KEY (user1_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_user2 FOREIGN KEY (user2_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
--- Messages table for conversation messages
-CREATE TABLE messages (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    conversation_id INT NOT NULL,
-    sender_id INT NOT NULL,
-    message TEXT,
-    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    read_status BOOLEAN DEFAULT FALSE,
-    FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
-    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
--- Resources table for file sharing
-CREATE TABLE resources (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    title VARCHAR(150),
-    file_url VARCHAR(255),
-    original_name VARCHAR(255),
-    uploaded_by INT,
-    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE SET NULL
-) ENGINE=InnoDB;
-```
-
-## 🔧 Setup Instructions
-
-1. **Database Setup**
-   - Create a MySQL database named `together_culture_crm`
-   - Run the schema file: `backend/migrations/schema.sql`
-   - Optionally run: `backend/migrations/2025_07_28_add_conversations.sql`
-
-2. **Environment Configuration**
-   - Copy `.env.example` to `.env` in the backend folder
-   - Update database credentials and JWT secret
-
-3. **Backend Setup**
+2. **Install dependencies**
    ```bash
    cd backend
    npm install
+   ```
+
+3. **Setup database**
+   ```bash
+   # Create MySQL database named 'together_culture'
+   mysql -u root -p -e "CREATE DATABASE together_culture;"
+   
+   # Run database setup (creates tables, admin user, and 55 dummy users)
+   node setup-database.js
+   ```
+
+4. **Start the application**
+   ```bash
    npm start
    ```
-   - The backend will run on `http://localhost:5000`
 
-4. **Frontend Configuration**
-   - The frontend is configured to connect to `http://localhost:5000` by default
-   - If your backend runs on a different port, edit `frontend/js/config.js` and change the `API_BASE_URL`
-   - Example: Change `API_BASE_URL: 'http://localhost:5000'` to your backend URL
+5. **Access the application**
+   - Open your browser to `http://localhost:5000`
+   - Login with admin credentials or test with member accounts
 
-5. **Access the Application**
-   - You can serve the frontend from any port (using Live Server, Python HTTP server, etc.)
-   - Example: `cd frontend && python -m http.server 8080`
-   - Open your frontend URL in the browser (e.g., `http://localhost:8080`)
-   - Register as the first admin user or create test accounts
+## 🔑 Default Login Credentials
 
-### 🌐 Development Notes
+### Admin Account
+- **Email:** `admin@togetherculture.com`
+- **Password:** `admin123`
+- **Access:** Full system administration
 
-- **CORS Configuration**: The backend is configured to accept requests from any localhost port for development
-- **Flexible Frontend**: The frontend can run on any port and will communicate with the backend properly
-- **API Configuration**: All API calls use the centralized config in `frontend/js/config.js`
+### Member Accounts (55 Available)
+- **Email:** `sarah.johnson@example.com` (pending approval)
+- **Email:** `michael.williams1@example.com` (approved)
+- **Password:** `password123` (for all member accounts)
+- **Access:** Standard member features
 
-## ✅ Implementation Status
+*Note: 55 dummy users are created with varied statuses (approved/pending/rejected) for testing*
 
-### **Core Requirements - COMPLETED**
-- ✅ **Data Repository** - Complete member and activity storage system
-- ✅ **Password Protected Access** - JWT-based authentication for member-only areas
-- ✅ **User Profile Management** - Full profile setup and maintenance capabilities
-- ✅ **Role-Based Functionality** - Granular permission system (admin/member roles)
-- ✅ **Member Activity Tracking** - Admin search and view of individual member activities
-- ✅ **Event & Visit Management** - Complete event lifecycle with attendance tracking
+## 📱 Application Structure
 
-### **Advanced Features - COMPLETED**
-- ✅ **Authentication & Security** - JWT with HTTP-only cookies, bcrypt password hashing
-- ✅ **Role-Based Access Control** - Admin and member roles with appropriate permissions
-- ✅ **Member Management System** - Full CRUD operations with activity intelligence
-- ✅ **Event Management Platform** - Complete event lifecycle management
-- ✅ **Visit Tracking & Analytics** - Comprehensive attendance monitoring
-- ✅ **Resource Management** - File upload/download with secure storage
-- ✅ **Communication System** - Two-way messaging with real-time features
-- ✅ **User Settings & Profiles** - Complete profile and password management
-- ✅ **Analytics Dashboard** - Real-time metrics and engagement tracking
-- ✅ **Responsive Design** - Mobile-friendly interface with modern UI
-- ✅ **Data Validation** - Frontend and backend validation with error handling
-- ✅ **Security Features** - CORS, file validation, SQL injection prevention
-- ✅ **Cross-Platform Support** - Flexible port configuration for development
+```
+together-culture-main/
+├── backend/
+│   ├── config/
+│   │   └── db.js                 # Database configuration
+│   ├── middleware/
+│   │   └── authMiddleware.js     # Authentication & authorization
+│   ├── routes/
+│   │   ├── auth.js              # Login/registration endpoints
+│   │   ├── admin.js             # Admin management & analytics
+│   │   ├── users.js             # User profile & settings
+│   │   ├── events.js            # Event management
+│   │   ├── messages.js          # Messaging system
+│   │   └── resources.js         # File management
+│   ├── uploads/                 # File storage directory
+│   ├── setup-database.js       # Database initialization
+│   ├── server.js               # Main server entry point
+│   └── package.json            # Node.js dependencies
+├── frontend/
+│   ├── css/
+│   │   └── style.css           # Custom styles
+│   ├── js/
+│   │   ├── config.js           # API configuration
+│   │   ├── auth.js             # Authentication logic
+│   │   ├── admin.js            # Admin dashboard
+│   │   ├── member.js           # Member dashboard
+│   │   ├── events.js           # Event management UI
+│   │   ├── messages.js         # Messaging interface
+│   │   ├── resources.js        # Resource management
+│   │   └── settings.js         # User settings
+│   ├── index.html              # Landing page
+│   ├── login.html              # Login interface
+│   ├── register.html           # Registration form
+│   ├── admin_dashboard.html    # Admin control panel
+│   ├── member_dashboard.html   # Member homepage
+│   ├── events.html             # Event management
+│   ├── messages.html           # Messaging system
+│   ├── resources.html          # Resource library
+│   └── settings.html           # User settings
+└── README.md                   # This file
+```
 
-## 🚧 Missing Features & Improvement Opportunities
+## 🎯 User Workflows
 
-### **📊 Advanced Analytics & Reporting**
-- ❌ **Export Functionality** - CSV/PDF export for member and activity data
-- ❌ **Advanced Analytics** - Engagement trends, growth metrics, retention analysis
-- ❌ **Custom Reports** - Configurable reporting with date ranges and filters
-- ❌ **Dashboard Customization** - Personalized dashboard widgets for admins
-- ❌ **Member Engagement Scoring** - Automated engagement level calculations
+### New User Registration
+1. User registers at `/register.html`
+2. Account created with "pending" status
+3. User can login but sees "Waiting for Admin Approval" message
+4. Admin approves/rejects from admin dashboard
+5. Approved users gain full access to all features
 
-### **📧 Communication Enhancements**
-- ❌ **Email Integration** - Automated email notifications for events and messages
-- ❌ **Bulk Email System** - Newsletter and announcement capabilities
-- ❌ **Message Templates** - Pre-configured message templates for common communications
-- ❌ **Push Notifications** - Real-time browser notifications for new messages
-- ❌ **Group Messaging** - Multi-participant chat rooms and discussion groups
+### Admin Member Management
+1. Login to admin dashboard
+2. View pending members in approval queue
+3. Review member details and activity
+4. Approve/reject members individually or in bulk
+5. Monitor member engagement scores and analytics
 
-### **📅 Event & Calendar Features**
-- ❌ **Event Registration** - Member self-registration for events with capacity limits
-- ❌ **Calendar Integration** - Export events to external calendars (Google, Outlook)
-- ❌ **Event Categories** - Categorization and filtering of events by type
-- ❌ **Recurring Events** - Support for repeating events and series
-- ❌ **Event Reminders** - Automated reminder system for upcoming events
-- ❌ **Waitlist Management** - Queue system for fully booked events
+### Event Management
+1. Admins create events with capacity limits
+2. Members register for events (up to capacity)
+3. System tracks registration vs attendance
+4. Analytics show event performance metrics
 
-### **👥 Advanced Member Features**
-- ❌ **Member Self-Registration** - Public registration form with admin approval
-- ❌ **Skill Matching** - Connect members with complementary skills
-- ❌ **Member Projects** - Project collaboration and team formation features
-- ❌ **Achievement System** - Badges and recognition for member participation
-- ❌ **Member Directory Search** - Advanced search by skills, interests, location
-- ❌ **Privacy Controls** - Granular privacy settings for profile information
+### Resource Sharing
+1. Users upload files with categories and access levels
+2. Files stored securely with virus scanning
+3. Download tracking and usage analytics
+4. Access control based on user roles and permissions
 
-### **🔧 System Administration**
-- ❌ **Backup & Recovery** - Automated database backup system
-- ❌ **Audit Logging** - Comprehensive system activity logging
-- ❌ **System Health Monitoring** - Performance metrics and alerts
-- ❌ **Multi-Admin Support** - Multiple administrator roles with different permissions
-- ❌ **Data Import/Export** - Bulk data migration tools
-- ❌ **System Configuration** - Admin panel for system-wide settings
+### Messaging System
+1. Users start direct or group conversations
+2. Real-time message delivery and read receipts
+3. Conversation management and participant controls
+4. Message history and search functionality
 
-### **📱 Mobile & API Features**
-- ❌ **Mobile App** - Native mobile application for iOS/Android
-- ❌ **REST API Documentation** - Comprehensive API documentation for integrations
-- ❌ **Third-Party Integrations** - Connect with external tools (Slack, Mailchimp, etc.)
-- ❌ **Offline Functionality** - Limited offline access for mobile users
-- ❌ **Progressive Web App** - PWA features for enhanced mobile experience
+## 📊 Analytics & Reporting
 
-### **🎨 UI/UX Enhancements**
-- ❌ **Dark Mode** - Alternative color scheme option
-- ❌ **Accessibility Improvements** - Enhanced screen reader support and keyboard navigation
-- ❌ **Multi-Language Support** - Internationalization for different languages
-- ❌ **Advanced Search** - Global search functionality across all content
-- ❌ **Drag & Drop Interface** - Enhanced file upload and organization features
-- ❌ **Customizable Themes** - User-selectable color schemes and layouts
+### Member Engagement Scoring
+The system calculates engagement scores using weighted metrics:
+- **40%** - Event Participation (attendance + recent activity)
+- **30%** - Resource Engagement (uploads + downloads received)
+- **20%** - Communication Activity (messages + conversations)
+- **10%** - Profile Completeness (bio, skills, avatar)
 
-### **🔐 Advanced Security Features**
-- ❌ **Two-Factor Authentication** - Enhanced security with 2FA
-- ❌ **Single Sign-On (SSO)** - Integration with external authentication providers
-- ❌ **Rate Limiting** - API protection against abuse
-- ❌ **Data Encryption** - Enhanced data protection for sensitive information
-- ❌ **Security Audit Tools** - Automated security scanning and reporting
+**Engagement Levels:**
+- **Highly Engaged** (80-100 points) - Active community contributors
+- **Moderately Engaged** (60-79 points) - Regular participants
+- **Lightly Engaged** (30-59 points) - Occasional users
+- **Inactive** (0-29 points) - Minimal activity
 
-## 🎯 Priority Recommendations
+### Dashboard Metrics
+- Total members by status (approved/pending/rejected)
+- Event attendance rates and trends
+- Resource download patterns
+- Communication activity levels
+- Member growth and retention analytics
 
-### **High Priority (Essential for Production)**
-1. **Export Functionality** - Critical for data portability and reporting
-2. **Email Integration** - Essential for member communication and engagement
-3. **Member Self-Registration** - Reduce admin workload and improve accessibility
-4. **Backup & Recovery** - Critical for data protection and business continuity
-5. **Two-Factor Authentication** - Enhanced security for sensitive data
+## 🔒 Security Features
 
-### **Medium Priority (Enhanced Functionality)**
-1. **Event Registration System** - Improve event management efficiency
-2. **Advanced Analytics** - Better insights into member engagement
-3. **Group Messaging** - Enhanced community building features
-4. **Calendar Integration** - Improved user experience for event planning
-5. **Progressive Web App** - Better mobile experience without native app
+### Authentication
+- JWT tokens with HTTP-only cookies
+- bcrypt password hashing with salt rounds
+- Role-based access control (admin/member)
+- Session management and secure logout
 
-### **Low Priority (Nice to Have)**
-1. **Dark Mode** - Improved user experience option
-2. **Multi-Language Support** - Expand accessibility
-3. **Achievement System** - Gamification for increased engagement
-4. **Third-Party Integrations** - Enhanced workflow efficiency
-5. **Customizable Themes** - Personalization options
+### File Security
+- File type validation and size limits
+- Secure file storage outside web root
+- Access level controls (public/members/admin)
+- Download tracking and audit trails
+
+### Data Protection
+- SQL injection prevention with parameterized queries
+- XSS protection with input sanitization
+- CORS configuration for API security
+- Environment variable configuration for secrets
+
+## 🛡️ Admin Features
+
+### Member Management
+- View all members with detailed profiles
+- Approve/reject pending registrations
+- Bulk approval actions for efficiency
+- Member activity tracking and engagement scores
+- Account deletion and status management
+
+### Event Administration
+- Create/edit/delete events with capacity limits
+- Monitor registration and attendance rates
+- Event performance analytics and reporting
+- Calendar view with event management tools
+
+### Resource Control
+- Upload restrictions by user role
+- File access level management
+- Storage usage monitoring
+- Download analytics and popular content tracking
+
+### System Analytics
+- Member engagement scoring and rankings
+- Event attendance vs registration metrics
+- Resource usage patterns and trends
+- Communication activity and participation rates
+
+## 👥 Member Features
+
+### Profile Management
+- Complete profile editing with avatar upload
+- Bio, skills, and contact information
+- Privacy settings and notification preferences
+- Activity history and engagement tracking
+
+### Event Participation
+- Browse and search upcoming events
+- Register/unregister with capacity awareness
+- Calendar integration and event reminders
+- Personal attendance history
+
+### Resource Access
+- Upload files with categorization
+- Download resources based on access level
+- Search and filter resource library
+- Personal upload history and statistics
+
+### Communication
+- Start direct and group conversations
+- Real-time messaging with read receipts
+- User search for new conversations
+- Message history and conversation management
+
+## 🔧 Configuration
+
+### Environment Variables
+Create `.env` file in backend directory:
+```env
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=together_culture
+JWT_SECRET=your_jwt_secret
+NODE_ENV=development
+PORT=5000
+```
+
+### Database Configuration
+The application uses MySQL with the following key settings:
+- Character set: utf8mb4 for full Unicode support
+- Timezone: System timezone with automatic handling
+- Connection pooling for performance
+- Prepared statements for security
+
+### File Upload Settings
+- Maximum file size: 10MB per file
+- Multiple file upload: Up to 5 files simultaneously
+- Supported formats: PDF, DOC, XLS, PPT, images, archives
+- Storage location: `backend/uploads/` directory
+
+## 🚀 Deployment
+
+### Production Setup
+1. **Environment Configuration**
+   ```bash
+   NODE_ENV=production
+   JWT_SECRET=strong_production_secret
+   DB_HOST=production_db_host
+   ```
+
+2. **Database Optimization**
+   - Enable MySQL query caching
+   - Configure proper indexes
+   - Set up regular backups
+
+3. **Security Hardening**
+   - Enable HTTPS with SSL certificates
+   - Configure firewall rules
+   - Set up rate limiting
+
+4. **Performance Optimization**
+   - Enable gzip compression
+   - Configure static file caching
+   - Set up CDN for file delivery
+
+## 📈 Performance Metrics
+
+### Database Efficiency
+- Indexed queries for fast member lookups
+- Optimized engagement score calculations
+- Efficient file metadata storage
+- Connection pooling for concurrent users
+
+### Frontend Performance
+- Lazy loading for large datasets
+- Efficient DOM manipulation
+- Optimized image handling
+- Progressive enhancement design
+
+### File Management
+- Streaming file uploads/downloads
+- Efficient storage organization
+- Automatic cleanup of temporary files
+- Download resume capability
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Database Connection Errors**
+```bash
+# Check MySQL service status
+sudo systemctl status mysql
+
+# Verify database exists
+mysql -u root -p -e "SHOW DATABASES;"
+```
+
+**File Upload Problems**
+- Check `backend/uploads/` directory permissions
+- Verify file size limits in configuration
+- Ensure sufficient disk space
+
+**Authentication Issues**
+- Clear browser cookies and cache
+- Verify JWT_SECRET in environment variables
+- Check user status (pending/approved/rejected)
+
+**Performance Issues**
+- Monitor database query performance
+- Check server resource usage
+- Optimize large file operations
+
+## 🤝 Contributing
+
+### Development Setup
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature-name`
+3. Make changes and test thoroughly
+4. Commit changes: `git commit -m 'Add feature'`
+5. Push to branch: `git push origin feature-name`
+6. Submit pull request
+
+### Code Standards
+- Use ES6+ JavaScript features
+- Follow consistent naming conventions
+- Add comments for complex logic
+- Test all new functionality
+- Maintain responsive design principles
+
+### Database Changes
+- Create migration scripts for schema changes
+- Update setup-database.js accordingly
+- Test with existing data
+- Document breaking changes
+
+## 📞 Support
+
+### Documentation
+- API endpoints documented in route files
+- Database schema in setup-database.js
+- Frontend components in respective JS files
+
+### Debugging
+- Enable debug logging in development
+- Check browser console for frontend errors
+- Monitor server logs for backend issues
+- Use database query logging for performance
+
+### Community
+- Report bugs through issue tracking
+- Request features via enhancement proposals
+- Share improvements and optimizations
+- Contribute to documentation
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **Tailwind CSS** for responsive design framework
+- **MySQL** for robust database management
+- **Node.js** community for excellent ecosystem
+- **Express.js** for streamlined web framework
+
+---
+
+## 📊 Feature Completion Status
+
+| Feature | Status | Completion |
+|---------|--------|------------|
+| Authentication System | ✅ Complete | 100% |
+| User Management | ✅ Complete | 100% |
+| Member Approval Workflow | ✅ Complete | 100% |
+| Events Management | ✅ Complete | 100% |
+| Messaging System | ✅ Complete | 100% |
+| Resources Management | ✅ Complete | 100% |
+| User Settings & Profiles | ✅ Complete | 100% |
+| Member Engagement Scoring | ✅ Complete | 100% |
+| Admin Dashboard | ✅ Complete | 100% |
+| Member Dashboard | ✅ Complete | 100% |
+
+**Overall Completion: 100% Core Functionality**
+
+The Together Culture CRM application is fully functional and ready for production use with all major features implemented and tested.
+
+---
+
+*For technical support or feature requests, please refer to the project documentation or contact the development team.*

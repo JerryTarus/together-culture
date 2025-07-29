@@ -13,3 +13,27 @@ const CONFIG = {
 
 // Make CONFIG available globally
 window.CONFIG = CONFIG;
+
+// Debug logging
+console.log('CONFIG loaded:', CONFIG);
+console.log('API Base URL:', CONFIG.API_BASE_URL);
+
+// Test connectivity function
+CONFIG.testConnection = async () => {
+    try {
+        const response = await fetch(CONFIG.apiUrl('api/admin/stats'), {
+            method: 'GET',
+            credentials: 'include'
+        });
+        console.log('Server connectivity test:', response.status === 401 ? 'OK (auth required)' : `Status: ${response.status}`);
+        return true;
+    } catch (error) {
+        console.error('Server connectivity test failed:', error);
+        return false;
+    }
+};
+
+// Auto-test connection when config loads
+setTimeout(() => {
+    CONFIG.testConnection();
+}, 1000);

@@ -872,12 +872,11 @@ function formatTime(timeString) {
 }
 
 function showMessage(message, type = 'info', duration = 3000) {
-    // Reuse the showMessage function from auth.js
-    if (typeof window.showMessage === 'function') {
+    // Prevent infinite recursion if this is already the global showMessage
+    if (window.showMessage && window.showMessage !== showMessage && typeof window.showMessage === 'function') {
         window.showMessage(message, type, duration);
         return;
     }
-    
     // Fallback implementation
     console.log(`${type.toUpperCase()}: ${message}`);
     alert(message);

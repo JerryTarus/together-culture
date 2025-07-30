@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -13,16 +14,65 @@
       href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;700;900&family=Noto+Sans:wght@400;500;700;900"
     />
     <link rel="stylesheet" href="./css/style.css" />
+    <style>
+      @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-20px) rotate(2deg); }
+      }
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes slideInLeft {
+        from { opacity: 0; transform: translateX(-50px); }
+        to { opacity: 1; transform: translateX(0); }
+      }
+      @keyframes slideInRight {
+        from { opacity: 0; transform: translateX(50px); }
+        to { opacity: 1; transform: translateX(0); }
+      }
+      @keyframes pulse-glow {
+        0%, 100% { box-shadow: 0 0 20px rgba(210, 105, 30, 0.3); }
+        50% { box-shadow: 0 0 40px rgba(210, 105, 30, 0.6); }
+      }
+      .animate-float { animation: float 6s ease-in-out infinite; }
+      .animate-fade-in-up { animation: fadeInUp 0.8s ease-out forwards; }
+      .animate-slide-in-left { animation: slideInLeft 0.8s ease-out forwards; }
+      .animate-slide-in-right { animation: slideInRight 0.8s ease-out forwards; }
+      .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+      .feature-card { 
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: translateY(0);
+      }
+      .feature-card:hover { 
+        transform: translateY(-10px) scale(1.02);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      }
+      .hero-gradient {
+        background: linear-gradient(135deg, #F5F5DC 0%, #FFF8E7 50%, #F0E68C 100%);
+      }
+      .text-gradient {
+        background: linear-gradient(135deg, #3D2B1F, #D2691E);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .parallax-bg {
+        background-attachment: fixed;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
+      }
+    </style>
   </head>
-  <body>
+  <body class="overflow-x-hidden">
     <div class="relative flex min-h-screen flex-col">
-      <header
-        class="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md"
-      >
+      <!-- Header -->
+      <header class="sticky top-0 z-50 w-full border-b bg-white/90 backdrop-blur-md transition-all duration-300">
         <div class="main-container flex h-20 items-center justify-between">
-          <a href="/" class="flex items-center gap-3">
+          <a href="/" class="flex items-center gap-3 group">
             <svg
-              class="h-8 w-8 brand-text-primary"
+              class="h-8 w-8 brand-text-primary transition-transform duration-300 group-hover:scale-110 animate-float"
               viewBox="0 0 48 48"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
@@ -38,101 +88,287 @@
                 fill="currentColor"
               ></path>
             </svg>
-            <h2 class="text-2xl font-bold brand-text-dark">Together Culture</h2>
+            <h2 class="text-2xl font-bold brand-text-dark transition-colors duration-300">Together Culture</h2>
           </a>
-          <div class="flex items-center gap-2">
+          <nav class="hidden md:flex items-center space-x-8">
+            <a href="#features" class="text-gray-700 hover:text-brand-primary transition-colors duration-300 font-medium">Features</a>
+            <a href="#community" class="text-gray-700 hover:text-brand-primary transition-colors duration-300 font-medium">Community</a>
+            <a href="#about" class="text-gray-700 hover:text-brand-primary transition-colors duration-300 font-medium">About</a>
+          </nav>
+          <div class="flex items-center gap-3">
             <a
               href="login.html"
-              class="rounded-lg h-10 px-5 text-sm font-bold flex items-center justify-center transition-colors hover:bg-gray-100"
+              class="rounded-lg h-10 px-5 text-sm font-medium flex items-center justify-center transition-all duration-300 hover:bg-gray-100 text-gray-700 hover:text-gray-900"
               >Login</a
             >
             <a
               href="register.html"
-              class="flex min-w-[84px] cursor-pointer items-center justify-center rounded-lg h-10 px-5 bg-brand-primary text-white text-sm font-bold transition-transform hover:scale-105"
-              >Register</a
+              class="flex min-w-[84px] cursor-pointer items-center justify-center rounded-lg h-10 px-5 bg-brand-primary text-white text-sm font-bold transition-all duration-300 hover:scale-105 hover:shadow-lg animate-pulse-glow"
+              >Join Us</a
             >
           </div>
         </div>
       </header>
 
       <main class="flex-grow">
-        <section class="relative text-center py-24 lg:py-40 bg-brand-beige">
-          <div class="main-container">
+        <!-- Hero Section -->
+        <section class="relative text-center py-24 lg:py-40 hero-gradient overflow-hidden">
+          <div class="absolute inset-0 opacity-10">
+            <div class="absolute top-20 left-10 w-32 h-32 bg-brand-primary rounded-full animate-float"></div>
+            <div class="absolute top-40 right-20 w-24 h-24 bg-yellow-400 rounded-full animate-float" style="animation-delay: 2s;"></div>
+            <div class="absolute bottom-20 left-1/4 w-20 h-20 bg-blue-400 rounded-full animate-float" style="animation-delay: 4s;"></div>
+          </div>
+          
+          <div class="main-container relative z-10">
             <h1
-              class="text-4xl lg:text-6xl font-black brand-text-dark tracking-tighter"
+              class="text-4xl lg:text-7xl font-black text-gradient tracking-tighter animate-fade-in-up"
+              style="animation-delay: 0.2s;"
             >
-              Empowering Communities. Connecting Creators.
+              Empowering Communities.<br />Connecting Creators.
             </h1>
-            <p class="mt-6 mx-auto max-w-2xl text-lg text-gray-600">
-              Join a community united in creating a more equitable and
+            <p class="mt-8 mx-auto max-w-3xl text-lg lg:text-xl text-gray-700 leading-relaxed animate-fade-in-up" style="animation-delay: 0.4s;">
+              Join a vibrant community united in creating a more equitable and
               ecological creative economy. Structure, resources, and
               development—all in one place.
             </p>
-            <div class="mt-10 flex justify-center gap-4">
+            <div class="mt-12 flex flex-col sm:flex-row justify-center gap-4 animate-fade-in-up" style="animation-delay: 0.6s;">
               <a
                 href="register.html"
-                class="rounded-lg h-12 px-8 text-base font-bold text-white bg-brand-primary flex items-center justify-center transition-transform hover:scale-105"
-                >Become a Member</a
+                class="group relative rounded-lg h-14 px-8 text-lg font-bold text-white bg-brand-primary flex items-center justify-center transition-all duration-300 hover:scale-105 hover:shadow-2xl overflow-hidden"
               >
+                <span class="relative z-10">Become a Member</span>
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 transform -skew-x-12 group-hover:animate-pulse"></div>
+              </a>
+              <a
+                href="#features"
+                class="rounded-lg h-14 px-8 text-lg font-bold text-brand-primary bg-white border-2 border-brand-primary flex items-center justify-center transition-all duration-300 hover:bg-brand-primary hover:text-white hover:scale-105 hover:shadow-lg"
+              >
+                Learn More
+              </a>
             </div>
           </div>
         </section>
 
-        <section id="features" class="py-20 lg:py-28">
+        <!-- Features Section -->
+        <section id="features" class="py-20 lg:py-32 bg-gray-50">
           <div class="main-container text-center">
-            <h2 class="text-3xl font-bold brand-text-dark">
+            <h2 class="text-3xl lg:text-5xl font-bold brand-text-dark animate-fade-in-up">
               A Platform Built For You
             </h2>
-            <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-600">
+            <p class="mt-6 max-w-3xl mx-auto text-lg lg:text-xl text-gray-600 leading-relaxed animate-fade-in-up" style="animation-delay: 0.2s;">
               Our features are designed to provide support, foster connection,
-              and track your progress.
+              and track your progress in building meaningful community relationships.
             </p>
-            <div
-              class="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3 text-left"
-            >
-              <div
-                class="p-8 rounded-xl border border-gray-200 bg-white shadow-sm"
-              >
-                <h3 class="text-xl font-bold brand-text-dark">
+            
+            <div class="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3 text-left">
+              <div class="feature-card p-8 rounded-2xl border border-gray-200 bg-white shadow-lg hover:shadow-2xl animate-slide-in-left" style="animation-delay: 0.1s;">
+                <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mb-6 transition-transform duration-300 hover:scale-110">
+                  <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                  </svg>
+                </div>
+                <h3 class="text-xl font-bold brand-text-dark mb-4">
                   Community & Profiles
                 </h3>
-                <p class="mt-2 text-gray-600">
-                  A full member directory. View profiles, see skills, and send
-                  direct messages to foster collaboration.
+                <p class="text-gray-600 leading-relaxed">
+                  A comprehensive member directory where you can view profiles, discover skills, and send direct messages to foster meaningful collaboration within the community.
                 </p>
               </div>
-              <div
-                class="p-8 rounded-xl border border-gray-200 bg-white shadow-sm"
-              >
-                <h3 class="text-xl font-bold brand-text-dark">
-                  Events & Visit Tracking
+
+              <div class="feature-card p-8 rounded-2xl border border-gray-200 bg-white shadow-lg hover:shadow-2xl animate-fade-in-up" style="animation-delay: 0.3s;">
+                <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-teal-600 rounded-2xl flex items-center justify-center mb-6 transition-transform duration-300 hover:scale-110">
+                  <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                  </svg>
+                </div>
+                <h3 class="text-xl font-bold brand-text-dark mb-4">
+                  Events & Engagement
                 </h3>
-                <p class="mt-2 text-gray-600">
-                  Stay updated on workshops and meetups. See your attendance
-                  history and track your engagement over time.
+                <p class="text-gray-600 leading-relaxed">
+                  Stay connected with workshops, meetups, and community events. Track your attendance history, RSVP to upcoming events, and see your engagement over time.
                 </p>
               </div>
-              <div
-                class="p-8 rounded-xl border border-gray-200 bg-white shadow-sm"
-              >
-                <h3 class="text-xl font-bold brand-text-dark">
-                  Admin & Reporting
+
+              <div class="feature-card p-8 rounded-2xl border border-gray-200 bg-white shadow-lg hover:shadow-2xl animate-slide-in-right" style="animation-delay: 0.5s;">
+                <div class="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center mb-6 transition-transform duration-300 hover:scale-110">
+                  <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                  </svg>
+                </div>
+                <h3 class="text-xl font-bold brand-text-dark mb-4">
+                  Smart Management
                 </h3>
-                <p class="mt-2 text-gray-600">
-                  Admins get a powerful dashboard to manage members, events, and
-                  resources, with detailed analytics.
+                <p class="text-gray-600 leading-relaxed">
+                  Powerful admin dashboard for community leaders to manage members, organize events, share resources, and gain insights through detailed analytics and reporting.
                 </p>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Community Section -->
+        <section id="community" class="py-20 lg:py-32 bg-white">
+          <div class="main-container">
+            <div class="grid lg:grid-cols-2 gap-16 items-center">
+              <div class="animate-slide-in-left">
+                <h2 class="text-3xl lg:text-5xl font-bold brand-text-dark mb-8">
+                  Building Stronger Communities Together
+                </h2>
+                <p class="text-lg text-gray-600 leading-relaxed mb-8">
+                  Our platform brings creators, entrepreneurs, and community builders together in a space designed for collaboration, growth, and meaningful connections. Whether you're sharing resources, attending events, or building networks, we provide the tools you need to thrive.
+                </p>
+                <div class="space-y-4">
+                  <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                    </div>
+                    <span class="text-gray-700 font-medium">Real-time messaging and collaboration</span>
+                  </div>
+                  <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                    </div>
+                    <span class="text-gray-700 font-medium">Event management and RSVP system</span>
+                  </div>
+                  <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                    </div>
+                    <span class="text-gray-700 font-medium">Resource sharing and knowledge base</span>
+                  </div>
+                </div>
+              </div>
+              <div class="animate-slide-in-right">
+                <div class="relative">
+                  <div class="bg-gradient-to-br from-brand-primary/20 to-yellow-400/20 rounded-3xl p-8 backdrop-blur-sm">
+                    <div class="grid grid-cols-2 gap-6">
+                      <div class="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <div class="text-3xl font-bold text-brand-primary mb-2">500+</div>
+                        <div class="text-gray-600 font-medium">Active Members</div>
+                      </div>
+                      <div class="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <div class="text-3xl font-bold text-green-600 mb-2">150+</div>
+                        <div class="text-gray-600 font-medium">Events Hosted</div>
+                      </div>
+                      <div class="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <div class="text-3xl font-bold text-blue-600 mb-2">1000+</div>
+                        <div class="text-gray-600 font-medium">Connections Made</div>
+                      </div>
+                      <div class="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <div class="text-3xl font-bold text-purple-600 mb-2">24/7</div>
+                        <div class="text-gray-600 font-medium">Community Support</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section id="about" class="py-20 lg:py-32 bg-gradient-to-br from-brand-primary to-yellow-600 text-white text-center">
+          <div class="main-container">
+            <h2 class="text-3xl lg:text-5xl font-bold mb-8 animate-fade-in-up">
+              Ready to Join Our Community?
+            </h2>
+            <p class="text-lg lg:text-xl opacity-90 max-w-2xl mx-auto mb-12 animate-fade-in-up" style="animation-delay: 0.2s;">
+              Take the first step towards building meaningful connections and growing your creative practice with like-minded individuals.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-6 justify-center animate-fade-in-up" style="animation-delay: 0.4s;">
+              <a
+                href="register.html"
+                class="group relative bg-white text-brand-primary px-8 py-4 rounded-lg font-bold text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl overflow-hidden"
+              >
+                <span class="relative z-10">Get Started Today</span>
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-brand-primary to-transparent opacity-0 group-hover:opacity-10 transform -skew-x-12 group-hover:animate-pulse"></div>
+              </a>
+              <a
+                href="login.html"
+                class="border-2 border-white text-white px-8 py-4 rounded-lg font-bold text-lg transition-all duration-300 hover:bg-white hover:text-brand-primary hover:scale-105"
+              >
+                Sign In
+              </a>
             </div>
           </div>
         </section>
       </main>
 
-      <footer class="bg-brand-beige">
-        <div class="main-container py-12 text-center text-gray-500">
-          <p>&copy; 2025 Together Culture. All Rights Reserved.</p>
+      <footer class="bg-brand-dark text-white">
+        <div class="main-container py-12">
+          <div class="grid md:grid-cols-3 gap-8 text-center md:text-left">
+            <div>
+              <div class="flex items-center gap-3 justify-center md:justify-start mb-4">
+                <svg class="h-8 w-8 text-brand-primary" viewBox="0 0 48 48" fill="none">
+                  <path d="M39.5563 34.1455V13.8546C39.5563 15.708 36.8773 17.3437 32.7927 18.3189C30.2914 18.916 27.263 19.2655 24 19.2655C20.737 19.2655 17.7086 18.916 15.2073 18.3189C11.1227 17.3437 8.44365 15.708 8.44365 13.8546V34.1455C8.44365 35.9988 11.1227 37.6346 15.2073 38.6098C17.7086 39.2069 20.737 39.5564 24 39.5564C27.263 39.5564 30.2914 39.2069 32.7927 38.6098C36.8773 37.6346 39.5563 35.9988 39.5563 34.1455Z" fill="currentColor"></path>
+                </svg>
+                <h3 class="text-xl font-bold">Together Culture</h3>
+              </div>
+              <p class="text-gray-400 leading-relaxed">
+                Empowering communities and connecting creators in a more equitable creative economy.
+              </p>
+            </div>
+            <div>
+              <h4 class="font-semibold mb-4 text-lg">Quick Links</h4>
+              <div class="space-y-2">
+                <a href="#features" class="block text-gray-400 hover:text-white transition-colors duration-300">Features</a>
+                <a href="#community" class="block text-gray-400 hover:text-white transition-colors duration-300">Community</a>
+                <a href="#about" class="block text-gray-400 hover:text-white transition-colors duration-300">About</a>
+                <a href="register.html" class="block text-gray-400 hover:text-white transition-colors duration-300">Join Us</a>
+              </div>
+            </div>
+            <div>
+              <h4 class="font-semibold mb-4 text-lg">Get Started</h4>
+              <div class="space-y-2">
+                <a href="register.html" class="block text-gray-400 hover:text-white transition-colors duration-300">Create Account</a>
+                <a href="login.html" class="block text-gray-400 hover:text-white transition-colors duration-300">Sign In</a>
+              </div>
+            </div>
+          </div>
+          <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+            <p>&copy; 2025 Together Culture. All Rights Reserved.</p>
+          </div>
         </div>
       </footer>
     </div>
+
+    <script>
+      // Smooth scrolling for anchor links
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute('href'));
+          if (target) {
+            target.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }
+        });
+      });
+
+      // Add animation classes on scroll
+      const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('animate-fade-in-up');
+          }
+        });
+      }, observerOptions);
+
+      // Observe all elements that should animate on scroll
+      document.querySelectorAll('.feature-card').forEach(el => observer.observe(el));
+    </script>
   </body>
 </html>

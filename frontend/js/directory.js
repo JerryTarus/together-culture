@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', () => {
     // Page elements
     const tableBody = document.getElementById('members-table-body');
@@ -211,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
             bio: document.getElementById('edit-bio').value,
             skills: document.getElementById('edit-skills').value,
         };
-        
+
         try {
             const res = await fetch(CONFIG.apiUrl(`api/users/${userId}`), {
                 method: 'PUT',
@@ -237,21 +236,21 @@ document.addEventListener('DOMContentLoaded', () => {
         activityModalTitle.textContent = `${memberName} - Activity Log`;
         activityContent.innerHTML = '<div class="text-center p-8">Loading activity...</div>';
         activityModal.classList.remove('hidden');
-        
+
         try {
             // Fetch visits
             const visitsRes = await fetch(CONFIG.apiUrl(`api/events/visits/user/${userId}`));
             const visits = await visitsRes.json();
-            
+
             // Fetch messages (conversations where user is involved)
             const messagesRes = await fetch(CONFIG.apiUrl(`api/messages/conversations`));
             const conversations = await messagesRes.json();
             const userConversations = conversations.filter(conv => 
                 conv.user1_id == userId || conv.user2_id == userId
             );
-            
+
             let activityHtml = '';
-            
+
             // Visits section
             activityHtml += `
                 <div class="mb-6">
@@ -274,7 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 </div>
             `;
-            
+
             // Conversations section
             activityHtml += `
                 <div class="mb-6">
@@ -297,15 +296,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 </div>
             `;
-            
+
             activityContent.innerHTML = activityHtml;
-            
+
         } catch (error) {
             console.error('Error loading member activity:', error);
             activityContent.innerHTML = '<div class="text-red-500 p-4">Error loading member activity.</div>';
         }
     };
-    
+
     // Close activity modal
     closeActivityButton.addEventListener('click', () => {
         activityModal.classList.add('hidden');
@@ -315,7 +314,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (logoutButton) {
         logoutButton.addEventListener('click', async () => {
             await fetch(CONFIG.apiUrl('api/auth/logout'), { method: 'POST' });
-            window.location.href = './login.html';
+            // Clear any local storage/session data
+            localStorage.clear();
+            sessionStorage.clear();
+
+            // Show logout message and redirect to homepage
+            showMessage('Logged out successfully. Redirecting...', 'success', 1500);
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1600);
         });
     }
 
@@ -352,6 +359,6 @@ document.addEventListener('DOMContentLoaded', () => {
         await getCurrentUser();
         await fetchAndRenderMembers();
     };
-    
+
     initPage();
 });

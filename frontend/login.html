@@ -14,7 +14,162 @@
     <main class="w-full max-w-md mx-auto">
       <div class="bg-white rounded-xl shadow-lg p-8 md:p-10">
         <div class="text-center mb-8">
-          <h1 class="text-2xl font-bold brand-text-dark">Welcome Back</h1>
+            <a href="/" class="inline-block mb-4 text-brand-primary hover:text-brand-primary/80 transition-colors duration-300">
+              <svg class="w-6 h-6 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+              </svg>
+              Back to Homepage
+            </a>
+            <h1 class="text-2xl font-bold brand-text-dark">Welcome Back</h1>
+          <p class="text-gray-700 text-base font-medium bg-yellow-100 border-l-4 border-yellow-400 rounded px-4 py-3 mb-2">
+            <svg class="inline w-5 h-5 text-yellow-500 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z"/></svg>
+            If your account is <b>pending approval</b> or was <b>rejected</b>, you will see a notification after login attempt. Please check your email for updates.
+          </p>
+          <p class="text-gray-500 text-sm">Sign in to your dashboard.</p>
+        </div>
+
+        <div
+          id="error-message"
+          class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-6"
+          role="alert"
+        ></div>
+
+        <form id="login-form" class="space-y-6">
+          <div>
+            <label for="email" class="text-sm font-medium text-gray-700"
+              >Email Address</label
+            >
+            <input
+              type="email"
+              id="email"
+              name="email"
+              required
+              autocomplete="email"
+              class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            />
+          </div>
+          <div>
+            <label for="password" class="text-sm font-medium text-gray-700"
+              >Password</label
+            >
+            <div class="relative mt-1">
+              <input
+                type="password"
+                id="password"
+                name="password"
+                required
+                autocomplete="current-password"
+                class="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              />
+              <span
+                id="toggle-password"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
+              >
+                <svg
+                  id="eye-icon"
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                  />
+                </svg>
+                <svg
+                  id="eye-off-icon"
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5 text-gray-400 hidden"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 1.274-4.057 5.064-7 9.542-7 .847 0 1.67.127 2.458.365M18.825 13.875A10.05 10.05 0 0119 12c-1.274-4.057-5.064-7-9.542-7a10.02 10.02 0 00-1.825.205M12 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M3 3l18 18"
+                  />
+                </svg>
+              </span>
+            </div>
+          </div>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center">
+              <input
+                id="remember-me"
+                name="remember-me"
+                type="checkbox"
+                class="h-4 w-4 text-brand-primary focus:ring-brand-primary border-gray-300 rounded"
+              />
+              <label for="remember-me" class="ml-2 block text-sm text-gray-900"
+                >Remember me</label
+              >
+            </div>
+          </div>
+          <div>
+            <button
+              type="submit"
+              id="login-button"
+              class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm font-bold text-white bg-brand-primary"
+            >
+              Log In
+            </button>
+          </div>
+        </form>
+        <p class="mt-8 text-sm text-center text-gray-500">
+          Don't have an account?
+          <a
+            href="register.html"
+            class="font-medium brand-text-primary hover:underline"
+            >Sign up</a
+          >
+        </p>
+      </div>
+    </main>
+    <script src="./js/config.js"></script>
+    <script src="./js/auth.js"></script>
+  </body>
+</html>
+```<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Together Culture</title>
+    <link rel="icon" type="image/png" href="/tfav.png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="./css/style.css" />
+  </head>
+  <body
+    class="bg-brand-beige flex items-center justify-center min-h-screen p-4"
+  >
+    <main class="w-full max-w-md mx-auto">
+      <div class="bg-white rounded-xl shadow-lg p-8 md:p-10">
+        <div class="text-center mb-8">
+            <a href="/" class="inline-block mb-4 text-brand-primary hover:text-brand-primary/80 transition-colors duration-300">
+              <svg class="w-6 h-6 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+              </svg>
+              Back to Homepage
+            </a>
+            <h1 class="text-2xl font-bold brand-text-dark">Welcome Back</h1>
           <p class="text-gray-700 text-base font-medium bg-yellow-100 border-l-4 border-yellow-400 rounded px-4 py-3 mb-2">
             <svg class="inline w-5 h-5 text-yellow-500 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z"/></svg>
             If your account is <b>pending approval</b> or was <b>rejected</b>, you will see a notification after login attempt. Please check your email for updates.

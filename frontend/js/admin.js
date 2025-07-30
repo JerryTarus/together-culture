@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- 1. VERIFY ADMIN STATUS & GET USER INFO ---
     try {
         const userRes = await fetch(CONFIG.apiUrl('api/users/me'));
-        
+
         if (!userRes.ok) { // Not logged in
             window.location.href = './login.html';
             return;
@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const userObj = await userRes.json();
         const user = userObj.user;
-        
+
         if (!user || user.role !== 'admin') { // Not an admin
             alert('Access Denied: You do not have permission to view this page.');
             window.location.href = './member_dashboard.html';
@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Hide loader and show root after stats are loaded
             if (loader) loader.style.display = 'none';
             if (rootEl) rootEl.classList.remove('hidden');
-        
+
         } catch (error) {
             console.error('Failed to load dashboard stats:', error);
             showToast('Could not load dashboard data.', 'error');
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Get new members in last 30 days
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            
+
             const [newMembersRes, activeEventsRes, avgAttendanceRes] = await Promise.all([
                 fetch(CONFIG.apiUrl(`api/users/status/approved`)),
                 fetch(CONFIG.apiUrl('api/events')),
@@ -113,23 +113,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function loadPendingUsers() {
         const container = document.getElementById('pending-users-table-container');
         const countElement = document.getElementById('pending-count');
-        
+
         container.innerHTML = '<div class="text-gray-500">Loading pending users...</div>';
-        
+
         try {
             const res = await fetch(CONFIG.apiUrl('api/users/status/pending'));
             if (!res.ok) throw new Error('Failed to fetch pending users');
-            
+
             const users = await res.json();
-            
+
             // Update count
             countElement.textContent = users.length;
-            
+
             if (!Array.isArray(users) || users.length === 0) {
                 container.innerHTML = '<div class="text-gray-500">No pending users at this time.</div>';
                 return;
             }
-            
+
             let tableHtml = `
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-sm">
@@ -143,14 +143,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                         </thead>
                         <tbody>
             `;
-            
+
             for (const user of users) {
                 const registerDate = new Date(user.created_at).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
                     year: 'numeric'
                 });
-                
+
                 tableHtml += `
                     <tr class="border-b border-gray-100 hover:bg-gray-50">
                         <td class="px-4 py-3">${user.full_name}</td>
@@ -169,21 +169,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </tr>
                 `;
             }
-            
+
             tableHtml += '</tbody></table></div>';
             container.innerHTML = tableHtml;
-            
+
             // Attach button handlers
             container.querySelectorAll('.approve-btn').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const userId = btn.getAttribute('data-user-id');
                     btn.disabled = true;
                     btn.textContent = 'Approving...';
-                    
+
                     try {
                         const res = await fetch(CONFIG.apiUrl(`api/users/${userId}/approve`), { method: 'PATCH' });
                         if (!res.ok) throw new Error('Failed to approve user');
-                        
+
                         showToast('User approved successfully', 'success');
                         loadPendingUsers();
                     } catch (err) {
@@ -193,17 +193,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 });
             });
-            
+
             container.querySelectorAll('.reject-btn').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const userId = btn.getAttribute('data-user-id');
                     btn.disabled = true;
                     btn.textContent = 'Rejecting...';
-                    
+
                     try {
                         const res = await fetch(CONFIG.apiUrl(`api/users/${userId}/reject`), { method: 'PATCH' });
                         if (!res.ok) throw new Error('Failed to reject user');
-                        
+
                         showToast('User rejected successfully', 'success');
                         loadPendingUsers();
                     } catch (err) {
@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 });
             });
-            
+
         } catch (err) {
             container.innerHTML = '<div class="text-red-500">Error loading pending users.</div>';
         }
@@ -223,19 +223,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function loadRecentActivity() {
         const container = document.getElementById('recent-activity');
         container.innerHTML = '<div class="text-gray-500">Loading recent activity...</div>';
-        
+
         try {
             const res = await fetch(CONFIG.apiUrl('api/admin/recent-activity'));
             if (!res.ok) throw new Error('Failed to fetch recent activity');
-            
+
             const activitiesObj = await res.json();
             const activities = activitiesObj.recent_activity || [];
-            
+
             if (!Array.isArray(activities) || activities.length === 0) {
                 container.innerHTML = '<div class="text-gray-500">No recent activity to display.</div>';
                 return;
             }
-            
+
             let activitiesHtml = '';
             activities.slice(0, 5).forEach(activity => {
                 const activityDate = new Date(activity.created_at).toLocaleDateString('en-US', {
@@ -244,7 +244,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-                
+
                 activitiesHtml += `
                     <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                         <div class="w-2 h-2 bg-brand-primary rounded-full"></div>
@@ -255,9 +255,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                 `;
             });
-            
+
             container.innerHTML = activitiesHtml;
-            
+
         } catch (error) {
             console.error('Error loading recent activity:', error);
             container.innerHTML = '<div class="text-gray-500">Could not load recent activity.</div>';
@@ -268,28 +268,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function loadRecentMembers() {
         const container = document.getElementById('recent-members');
         container.innerHTML = '<div class="text-gray-500 text-sm">Loading recent members...</div>';
-        
+
         try {
             const res = await fetch(CONFIG.apiUrl('api/users'));
             if (!res.ok) throw new Error('Failed to fetch recent members');
-            
+
             const members = await res.json();
-            
+
             if (!Array.isArray(members) || members.length === 0) {
                 container.innerHTML = '<div class="text-gray-500 text-sm">No members to display.</div>';
                 return;
             }
-            
+
             let membersHtml = '';
             members.slice(0, 5).forEach(member => {
                 const joinDate = new Date(member.created_at).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric'
                 });
-                
+
                 const statusColor = member.status === 'approved' ? 'text-green-600' : 
                                   member.status === 'pending' ? 'text-yellow-600' : 'text-red-600';
-                
+
                 membersHtml += `
                     <div class="flex items-center justify-between">
                         <div>
@@ -300,9 +300,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                 `;
             });
-            
+
             container.innerHTML = membersHtml;
-            
+
         } catch (error) {
             console.error('Error loading recent members:', error);
             container.innerHTML = '<div class="text-gray-500 text-sm">Could not load recent members.</div>';

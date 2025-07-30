@@ -361,15 +361,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Add event listener for the logout button
     logoutButton.addEventListener('click', async () => {
         try {
-            await fetch(CONFIG.apiUrl('api/auth/logout'), { 
-                method: 'POST', 
-                credentials: 'include' 
+            const response = await fetch(CONFIG.apiUrl('api/auth/logout'), {
+                method: 'POST',
+                credentials: 'include'
             });
-            showToast('Logged out successfully.', 'success');
-            setTimeout(() => window.location.href = './login.html', 800);
+
+            // Clear any local storage/session data
+            localStorage.clear();
+            sessionStorage.clear();
+
+            // Show logout message and redirect to homepage
+            showToast('Logged out successfully. Redirecting...', 'success', 1500);
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1600);
         } catch (error) {
-            console.error('Logout failed:', error);
-            showToast('Logout failed. Please try again.', 'error');
+            console.error('Logout error:', error);
+            // Force redirect even if logout request fails
+            window.location.href = '/';
         }
     });
 

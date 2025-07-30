@@ -707,6 +707,12 @@ function showLoading(show) {
 }
 
 function showNoResources() {
+    if (!resourcesContainer || !noResourcesDiv) return;
+    
+    resourcesContainer.classList.add('hidden');
+    noResourcesDiv.classList.remove('hidden');
+    if (paginationDiv) paginationDiv.classList.add('hidden');
+}
 ```python
     resourcesContainer.classList.add('hidden');
     noResourcesDiv.classList.remove('hidden');

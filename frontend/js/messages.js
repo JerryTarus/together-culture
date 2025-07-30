@@ -209,6 +209,15 @@ async function startConversation(member) {
         `;
     }
 
+    // Enable message input and send button
+    if (messageInput) {
+        messageInput.disabled = false;
+        messageInput.placeholder = `Type a message to ${member.full_name}...`;
+    }
+    if (sendButton) {
+        sendButton.disabled = false;
+    }
+
     // Load messages for this conversation
     await loadMessages(member.id);
 }
@@ -232,6 +241,15 @@ async function openConversation(conversation) {
                 <h3 class="font-semibold text-gray-900">${escapeHtml(conversation.other_user.full_name)}</h3>
             </div>
         `;
+    }
+
+    // Enable message input and send button
+    if (messageInput) {
+        messageInput.disabled = false;
+        messageInput.placeholder = `Type a message to ${conversation.other_user.full_name}...`;
+    }
+    if (sendButton) {
+        sendButton.disabled = false;
     }
 
     // Load messages for this conversation

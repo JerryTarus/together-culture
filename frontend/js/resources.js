@@ -721,19 +721,23 @@ function showNoResources() {
 
 async function handleLogout() {
     try {
-        await fetch(CONFIG.apiUrl('api/auth/logout'), {
+        const response = await fetch(CONFIG.apiUrl('api/auth/logout'), {
             method: 'POST',
             credentials: 'include'
         });
+        
+        if (response.ok) {
+            showMessage('Logged out successfully. Redirecting...', 'success', 1500);
+        }
     } catch (error) {
         console.error('Logout error:', error);
+        showMessage('Logout completed. Redirecting...', 'info', 1500);
     } finally {
         // Clear any local storage/session data
         localStorage.clear();
         sessionStorage.clear();
 
-        // Show logout message and redirect to homepage
-        showMessage('Logged out successfully. Redirecting...', 'success', 1500);
+        // Redirect to homepage
         setTimeout(() => {
             window.location.href = '/';
         }, 1600);

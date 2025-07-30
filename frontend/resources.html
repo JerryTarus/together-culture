@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resources - Together Culture</title>
-    <link rel="icon" type="image/png" href="/tfav.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/tfav.png">
+    <link rel="shortcut icon" href="/tfav.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="./css/style.css" />
     <style>
@@ -67,8 +68,10 @@
                 </div>
             </div>
             <div class="flex items-center gap-4">
-                <span id="user-name" class="text-sm text-gray-600"></span>
-                <button id="logout-btn" class="text-sm text-red-600 hover:text-red-800">Logout</button>
+                <span id="user-name" class="text-sm text-gray-600 hidden sm:block"></span>
+                <button id="logout-btn" class="px-3 py-1.5 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors">
+                    Logout
+                </button>
             </div>
         </div>
     </nav>

@@ -8,9 +8,10 @@ const db = require('../config/db');
 const { protect, admin } = require('../middleware/authMiddleware');
 
 // Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, '..', 'uploads');
+const uploadsDir = path.join(__dirname, '../../uploads/resources');
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log('✅ Created uploads directory:', uploadsDir);
 }
 
 // Configure multer for file uploads

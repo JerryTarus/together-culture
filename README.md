@@ -53,14 +53,14 @@ A comprehensive Customer Relationship Management (CRM) system built for communit
 ### Prerequisites
 - Node.js (v14 or higher)
 - MySQL Server (v8.0 or higher)
-- Modern web browser
+- Modern web browser (Chrome, Firefox, Safari, Edge)
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd together-culture-main
+   cd together-culture
    ```
 
 2. **Install dependencies**
@@ -78,29 +78,36 @@ A comprehensive Customer Relationship Management (CRM) system built for communit
    node setup-database.js
    ```
 
-4. **Start the application**
+4. **Start the backend server**
    ```bash
    npm start
+   # Server will start on http://localhost:5000
    ```
 
 5. **Access the application**
-   - Open your browser to `http://localhost:5000`
-   - Login with admin credentials or test with member accounts
+   - **Frontend:** Open `frontend/login.html` in a web server or Live Server
+   - **API Backend:** Runs on `http://localhost:5000`
+   - Login with admin credentials to test all features
 
-## 🔑 Default Login Credentials
+## 🔑 Login Credentials
 
 ### Admin Account
 - **Email:** `admin@togetherculture.com`
 - **Password:** `admin123`
-- **Access:** Full system administration
+- **Access:** Full system administration with member approval workflow
 
 ### Member Accounts (55 Available)
 - **Email:** `sarah.johnson@example.com` (pending approval)
 - **Email:** `michael.williams1@example.com` (approved)
 - **Password:** `password123` (for all member accounts)
-- **Access:** Standard member features
+- **Access:** Standard member features after admin approval
 
-*Note: 55 dummy users are created with varied statuses (approved/pending/rejected) for testing*
+### 🚨 Important Security Features
+- **Automatic credential removal from URLs** - Any credentials passed in URL parameters are immediately cleared for security
+- **Role-based dashboard routing** - Admins and members are automatically redirected to their appropriate dashboards
+- **Session protection** - All pages verify user authentication and redirect unauthorized users
+
+*Note: 55 dummy users are created with varied statuses (approved/pending/rejected) for comprehensive testing*
 
 ## 📱 Application Structure
 
@@ -224,12 +231,13 @@ The system calculates engagement scores using weighted metrics:
 
 ## 🛡️ Admin Features
 
-### Member Management
-- View all members with detailed profiles
-- Approve/reject pending registrations
-- Bulk approval actions for efficiency
-- Member activity tracking and engagement scores
-- Account deletion and status management
+### Member Management & Search
+- **Complete member directory** with search functionality by name, email, or role
+- **Individual member activity tracking** - View all events attended and visits for each member
+- **Pending member approval workflow** - Approve/reject new registrations with one-click actions
+- **Bulk approval actions** for processing multiple members efficiently
+- **Member engagement scoring** and analytics
+- **Account management** - Edit member details, change roles, delete accounts
 
 ### Event Administration
 - Create/edit/delete events with capacity limits
@@ -351,8 +359,11 @@ The application uses MySQL with the following key settings:
 
 ### Common Issues
 
-**Database Connection Errors**
+**Backend Connection Issues**
 ```bash
+# Check if backend server is running
+curl http://localhost:5000/api/admin/stats
+
 # Check MySQL service status
 sudo systemctl status mysql
 
@@ -360,15 +371,21 @@ sudo systemctl status mysql
 mysql -u root -p -e "SHOW DATABASES;"
 ```
 
-**File Upload Problems**
-- Check `backend/uploads/` directory permissions
-- Verify file size limits in configuration
-- Ensure sufficient disk space
+**Frontend Loading Issues**
+- **CORS Errors:** Ensure backend is running on `http://localhost:5000`
+- **File Path Issues:** Use relative paths `./` for frontend files
+- **Security Warnings:** Credentials in URL are automatically cleared for security
 
 **Authentication Issues**
 - Clear browser cookies and cache
 - Verify JWT_SECRET in environment variables
 - Check user status (pending/approved/rejected)
+- Ensure backend server is running for API calls
+
+**File Upload Problems**
+- Check `backend/uploads/` directory permissions
+- Verify file size limits in configuration
+- Ensure sufficient disk space
 
 **Performance Issues**
 - Monitor database query performance

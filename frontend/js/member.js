@@ -34,11 +34,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (!res.ok) {
                 showToast('Session expired. Please log in again.', 'error');
-                setTimeout(() => window.location.href = '/login.html', 1500);
+                setTimeout(() => window.location.href = './login.html', 1500);
                 return;
             }
 
             const user = await res.json();
+            
+            // Redirect admin users to admin dashboard
+            if (user.role === 'admin') {
+                window.location.href = './admin_dashboard.html';
+                return;
+            }
             
             // Populate the dashboard with user data
             userNameEl.textContent = user.full_name;
@@ -73,7 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (error) {
             console.error('Error fetching user data:', error);
             showToast('Could not load dashboard. Please log in again.', 'error');
-            setTimeout(() => window.location.href = '/login.html', 1500);
+            setTimeout(() => window.location.href = './login.html', 1500);
         }
     }
 
@@ -184,7 +190,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             await fetch(CONFIG.apiUrl('api/auth/logout'), { method: 'POST' });
             showToast('Logged out successfully.', 'success');
-            setTimeout(() => window.location.href = '/login.html', 800);
+            setTimeout(() => window.location.href = './login.html', 800);
         } catch (error) {
             console.error('Logout failed:', error);
             showToast('Logout failed. Please try again.', 'error');

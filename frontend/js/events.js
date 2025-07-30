@@ -79,7 +79,7 @@ async function checkAuthentication() {
         
         if (!response.ok) {
             console.log('Not authenticated, redirecting to login');
-            window.location.href = '/login.html';
+            window.location.href = './login.html';
             return;
         }
         
@@ -96,10 +96,21 @@ async function checkAuthentication() {
             createEventBtn.classList.remove('hidden');
         }
         
+        // Update navigation links based on user role
+        updateNavigationLinks();
+        
         console.log('User authenticated:', currentUser.email, 'Role:', currentUser.role);
     } catch (error) {
         console.error('Authentication check failed:', error);
-        window.location.href = '/login.html';
+        window.location.href = './login.html';
+    }
+}
+
+function updateNavigationLinks() {
+    // Update dashboard link based on user role
+    const dashboardLink = document.querySelector('a[href="./member_dashboard.html"]');
+    if (dashboardLink && currentUser && currentUser.role === 'admin') {
+        dashboardLink.href = './admin_dashboard.html';
     }
 }
 
@@ -817,7 +828,7 @@ async function handleLogout() {
     } catch (error) {
         console.error('Logout error:', error);
     } finally {
-        window.location.href = '/login.html';
+    window.location.href = './login.html';
     }
 }
 

@@ -27,6 +27,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // State for all members
     let allMembers = [];
     let filteredMembers = [];
+    let currentUser = null;
+
+    // Get current user info first
+    const getCurrentUser = async () => {
+        try {
+            const res = await fetch(CONFIG.apiUrl('api/users/me'));
+            if (res.ok) {
+                const data = await res.json();
+                currentUser = data.user;
+            }
+        } catch (error) {
+            console.error('Error getting current user:', error);
+        }
+    };
 
     // Fetch and display all members when the page loads
     const fetchAndRenderMembers = async () => {
@@ -35,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!res.ok) {
                 if (res.status === 401 || res.status === 403) {
                     showToast('Access Denied. Redirecting to login.', 'error');
-                    setTimeout(() => window.location.href = '/login.html', 1500);
+                    setTimeout(() => window.location.href = './login.html', 1500);
                 }
                 throw new Error('Could not fetch members');
             }
@@ -269,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (logoutButton) {
         logoutButton.addEventListener('click', async () => {
             await fetch(CONFIG.apiUrl('api/auth/logout'), { method: 'POST' });
-            window.location.href = '/login.html';
+            window.location.href = './login.html';
         });
     }
 
@@ -302,5 +316,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Initial load
-    fetchAndRenderMembers();
+    const initPage = async () => {
+        await getCurrentUser();
+        await fetchAndRenderMembers();
+    };
+    
+    initPage();
 });

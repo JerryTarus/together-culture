@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const db = require('../config/db');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, admin } = require('../middleware/authMiddleware');
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, '..', 'uploads', 'avatars');
@@ -43,6 +43,30 @@ const avatarUpload = multer({
     limits: {
         fileSize: 5 * 1024 * 1024, // 5MB limit
         files: 1 // Only 1 file
+    }
+});
+
+// GET /api/users - Get all users (admin only)
+router.get('/', protect, admin, async (req, res) => {
+    try {
+        const [users] = await db.query(`
+            SELECT 
+                id, full_name, email, role, status, bio, skills, 
+                avatar_url, created_at, last_login, updated_at
+            FROM users 
+            ORDER BY created_at DESC
+        `);
+        
+        // Remove any sensitive information (though password is not selected)
+        const safeUsers = users.map(user => {
+            const { password, ...safeUser } = user;
+            return safeUser;
+        });
+        
+        res.json(safeUsers);
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        res.status(500).json({ message: 'Error fetching users' });
     }
 });
 
@@ -491,6 +515,282 @@ router.get('/search', protect, async (req, res) => {
     } catch (error) {
         console.error('Error searching users:', error);
         res.status(500).json({ message: 'Error searching users' });
+    }
+});
+
+// GET /api/users/status/:status - Get users by status (admin only)
+router.get('/status/:status', protect, admin, async (req, res) => {
+    try {
+        const { status } = req.params;
+        const validStatuses = ['pending', 'approved', 'rejected'];
+        
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ message: 'Invalid status' });
+        }
+        
+        const [users] = await db.query(`
+            SELECT 
+                id, full_name, email, role, status, bio, skills, 
+                avatar_url, created_at, last_login, updated_at
+            FROM users 
+            WHERE status = ?
+            ORDER BY created_at DESC
+        `, [status]);
+        
+        res.json(users);
+    } catch (error) {
+        console.error('Error fetching users by status:', error);
+        res.status(500).json({ message: 'Error fetching users' });
+    }
+});
+
+// PATCH /api/users/:id/approve - Approve user (admin only)
+router.patch('/:id/approve', protect, admin, async (req, res) => {
+    try {
+        const userId = req.params.id;
+        
+        // Check if user exists and is pending
+        const [users] = await db.query('SELECT id, status, email FROM users WHERE id = ?', [userId]);
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        const user = users[0];
+        if (user.status !== 'pending') {
+            return res.status(400).json({ message: 'User is not pending approval' });
+        }
+        
+        // Approve user
+        await db.query('UPDATE users SET status = ?, updated_at = NOW() WHERE id = ?', ['approved', userId]);
+        
+        console.log(`✅ User approved by admin: ${req.user.email} - User: ${user.email}`);
+        
+        res.json({ message: 'User approved successfully' });
+    } catch (error) {
+        console.error('Error approving user:', error);
+        res.status(500).json({ message: 'Error approving user' });
+    }
+});
+
+// PATCH /api/users/:id/reject - Reject user (admin only)
+router.patch('/:id/reject', protect, admin, async (req, res) => {
+    try {
+        const userId = req.params.id;
+        
+        // Check if user exists and is pending
+        const [users] = await db.query('SELECT id, status, email FROM users WHERE id = ?', [userId]);
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        const user = users[0];
+        if (user.status !== 'pending') {
+            return res.status(400).json({ message: 'User is not pending approval' });
+        }
+        
+        // Reject user
+        await db.query('UPDATE users SET status = ?, updated_at = NOW() WHERE id = ?', ['rejected', userId]);
+        
+        console.log(`✅ User rejected by admin: ${req.user.email} - User: ${user.email}`);
+        
+        res.json({ message: 'User rejected successfully' });
+    } catch (error) {
+        console.error('Error rejecting user:', error);
+        res.status(500).json({ message: 'Error rejecting user' });
+    }
+});
+
+// GET /api/users/:id - Get specific user (admin only)
+router.get('/:id', protect, admin, async (req, res) => {
+    try {
+        const [users] = await db.query(`
+            SELECT 
+                id, full_name, email, role, status, bio, skills, 
+                avatar_url, created_at, last_login, updated_at
+            FROM users 
+            WHERE id = ?
+        `, [req.params.id]);
+        
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        res.json(users[0]);
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        res.status(500).json({ message: 'Error fetching user' });
+    }
+});
+
+// PUT /api/users/:id - Update user (admin only)
+router.put('/:id', protect, admin, async (req, res) => {
+    try {
+        const { full_name, email, role, bio, skills } = req.body;
+        const userId = req.params.id;
+        
+        // Validation
+        if (!full_name || full_name.trim().length < 2) {
+            return res.status(400).json({ 
+                message: 'Invalid input data',
+                errors: { full_name: 'Full name must be at least 2 characters long' }
+            });
+        }
+        
+        if (!email || !email.includes('@')) {
+            return res.status(400).json({ 
+                message: 'Invalid input data',
+                errors: { email: 'Valid email is required' }
+            });
+        }
+        
+        if (role && !['admin', 'member'].includes(role)) {
+            return res.status(400).json({ 
+                message: 'Invalid input data',
+                errors: { role: 'Role must be admin or member' }
+            });
+        }
+        
+        // Check if user exists
+        const [existingUsers] = await db.query('SELECT id FROM users WHERE id = ?', [userId]);
+        if (existingUsers.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        // Check if email is already taken by another user
+        const [emailCheck] = await db.query('SELECT id FROM users WHERE email = ? AND id != ?', [email, userId]);
+        if (emailCheck.length > 0) {
+            return res.status(400).json({ 
+                message: 'Email already taken',
+                errors: { email: 'This email is already in use' }
+            });
+        }
+        
+        // Update user
+        await db.query(`
+            UPDATE users 
+            SET full_name = ?, email = ?, role = ?, bio = ?, skills = ?, updated_at = NOW()
+            WHERE id = ?
+        `, [full_name.trim(), email.trim(), role || 'member', bio?.trim() || null, skills?.trim() || null, userId]);
+        
+        // Get updated user data
+        const [updatedUser] = await db.query(`
+            SELECT 
+                id, full_name, email, role, status, bio, skills, 
+                avatar_url, created_at, last_login, updated_at
+            FROM users 
+            WHERE id = ?
+        `, [userId]);
+        
+        console.log(`✅ User updated by admin: ${req.user.email} - User ID: ${userId}`);
+        
+        res.json({
+            message: 'User updated successfully',
+            user: updatedUser[0]
+        });
+    } catch (error) {
+        console.error('Error updating user:', error);
+        res.status(500).json({ message: 'Error updating user' });
+    }
+});
+
+// PATCH /api/users/:id/approve - Approve user (admin only)
+router.patch('/:id/approve', protect, admin, async (req, res) => {
+    try {
+        const userId = req.params.id;
+        
+        // Check if user exists and is pending
+        const [users] = await db.query('SELECT id, status, email FROM users WHERE id = ?', [userId]);
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        const user = users[0];
+        if (user.status !== 'pending') {
+            return res.status(400).json({ message: 'User is not pending approval' });
+        }
+        
+        // Approve user
+        await db.query('UPDATE users SET status = ?, updated_at = NOW() WHERE id = ?', ['approved', userId]);
+        
+        console.log(`✅ User approved by admin: ${req.user.email} - User: ${user.email}`);
+        
+        res.json({ message: 'User approved successfully' });
+    } catch (error) {
+        console.error('Error approving user:', error);
+        res.status(500).json({ message: 'Error approving user' });
+    }
+});
+
+// PATCH /api/users/:id/reject - Reject user (admin only)
+router.patch('/:id/reject', protect, admin, async (req, res) => {
+    try {
+        const userId = req.params.id;
+        
+        // Check if user exists and is pending
+        const [users] = await db.query('SELECT id, status, email FROM users WHERE id = ?', [userId]);
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        const user = users[0];
+        if (user.status !== 'pending') {
+            return res.status(400).json({ message: 'User is not pending approval' });
+        }
+        
+        // Reject user
+        await db.query('UPDATE users SET status = ?, updated_at = NOW() WHERE id = ?', ['rejected', userId]);
+        
+        console.log(`✅ User rejected by admin: ${req.user.email} - User: ${user.email}`);
+        
+        res.json({ message: 'User rejected successfully' });
+    } catch (error) {
+        console.error('Error rejecting user:', error);
+        res.status(500).json({ message: 'Error rejecting user' });
+    }
+});
+
+// DELETE /api/users/:id - Delete user (admin only)
+router.delete('/:id', protect, admin, async (req, res) => {
+    try {
+        const userId = req.params.id;
+        
+        // Prevent admin from deleting themselves
+        if (userId == req.user.id) {
+            return res.status(400).json({ message: 'Cannot delete your own account' });
+        }
+        
+        // Check if user exists
+        const [users] = await db.query('SELECT id, email, avatar_url FROM users WHERE id = ?', [userId]);
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        const user = users[0];
+        
+        // Delete related data
+        await db.query('DELETE FROM visits WHERE user_id = ?', [userId]);
+        await db.query('DELETE FROM conversation_participants WHERE user_id = ?', [userId]);
+        await db.query('UPDATE resources SET uploaded_by = NULL WHERE uploaded_by = ?', [userId]);
+        await db.query('UPDATE events SET created_by = NULL WHERE created_by = ?', [userId]);
+        await db.query('UPDATE messages SET sender_id = NULL WHERE sender_id = ?', [userId]);
+        
+        // Delete avatar file if exists
+        if (user.avatar_url) {
+            const avatarPath = path.join(__dirname, '..', user.avatar_url);
+            if (fs.existsSync(avatarPath)) {
+                fs.unlinkSync(avatarPath);
+            }
+        }
+        
+        // Delete user
+        await db.query('DELETE FROM users WHERE id = ?', [userId]);
+        
+        console.log(`✅ User deleted by admin: ${req.user.email} - Deleted user: ${user.email}`);
+        
+        res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        res.status(500).json({ message: 'Error deleting user' });
     }
 });
 

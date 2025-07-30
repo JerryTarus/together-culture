@@ -37,31 +37,42 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchCurrentUser() {
         try {
             const res = await fetch(CONFIG.apiUrl('api/users/me'));
-            if (!res.ok) window.location.href = '/login.html';
+            if (!res.ok) window.location.href = './login.html';
             currentUser = await res.json();
         } catch (error) {
-            window.location.href = '/login.html';
+            window.location.href = './login.html';
         }
     }
 
     function buildSidebar() {
         const commonLinks = `
-            <a href="/events.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg">Events</a>
-            <a href="/resources.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg">Resources</a>
-            <a href="/messages.html" class="flex items-center p-3 my-1 bg-brand-beige text-brand-primary rounded-lg font-semibold">Messages</a>
-            <a href="/settings.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg">Settings</a>
+            <a href="./events.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg">Events</a>
+            <a href="./resources.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg">Resources</a>
+            <a href="./messages.html" class="flex items-center p-3 my-1 bg-brand-beige text-brand-primary rounded-lg font-semibold">Messages</a>
+            <a href="./settings.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg">Settings</a>
         `;
         if (currentUser.role === 'admin') {
             sidebarNav.innerHTML = `
-                <a href="/admin_dashboard.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg">Dashboard</a>
-                <a href="/member_directory.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg">Members</a>
+                <a href="./admin_dashboard.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg">Dashboard</a>
+                <a href="./member_directory.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg">Members</a>
                 ${commonLinks}
             `;
         } else {
             sidebarNav.innerHTML = `
-                <a href="/member_dashboard.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg">Dashboard</a>
+                <a href="./member_dashboard.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg">Dashboard</a>
                 ${commonLinks}
             `;
+        }
+        
+        // Update navigation links in header
+        updateHeaderNavigation();
+    }
+    
+    function updateHeaderNavigation() {
+        // Update dashboard link in header navigation
+        const dashboardLink = document.querySelector('a[href="./member_dashboard.html"]');
+        if (dashboardLink && currentUser && currentUser.role === 'admin') {
+            dashboardLink.href = './admin_dashboard.html';
         }
     }
 
@@ -288,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleLogout() {
         await fetch(CONFIG.apiUrl('api/auth/logout'), { method: 'POST' });
-        window.location.href = '/login.html';
+        window.location.href = './login.html';
     }
 
     initialize();

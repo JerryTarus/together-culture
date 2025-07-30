@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const userRes = await fetch(CONFIG.apiUrl('api/users/me'));
         
         if (!userRes.ok) { // Not logged in
-            window.location.href = '/login.html';
+            window.location.href = './login.html';
             return;
         }
 
@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (!user || user.role !== 'admin') { // Not an admin
             alert('Access Denied: You do not have permission to view this page.');
-            window.location.href = '/member_dashboard.html';
+            window.location.href = './member_dashboard.html';
             return;
         }
 
@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     } catch (error) {
         console.error('Auth check failed:', error);
-        window.location.href = '/login.html';
+        window.location.href = './login.html';
         return;
     }
 
@@ -319,7 +319,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     logoutButton.addEventListener('click', async () => {
         try {
             await fetch(CONFIG.apiUrl('api/auth/logout'), { method: 'POST' });
-            window.location.href = '/login.html';
+            window.location.href = './login.html';
         } catch (error) {
             console.error('Logout failed:', error);
         }

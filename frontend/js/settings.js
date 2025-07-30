@@ -14,19 +14,19 @@ let deleteAccountModal, deleteAccountBtn, confirmDeleteBtn;
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Settings page loaded');
-    
+
     // Initialize DOM elements
     initializeDOMElements();
-    
+
     // Check authentication
     await checkAuthentication();
-    
+
     // Setup event listeners
     setupEventListeners();
-    
+
     // Load user data
     await loadUserData();
-    
+
     // Initialize tabs
     initializeTabs();
 });
@@ -35,12 +35,12 @@ function initializeDOMElements() {
     // User elements
     userNameSpan = document.getElementById('user-name');
     logoutBtn = document.getElementById('logout-btn');
-    
+
     // Forms
     profileForm = document.getElementById('profile-form');
     passwordForm = document.getElementById('password-form');
     preferencesForm = document.getElementById('preferences-form');
-    
+
     // Avatar elements
     currentAvatarImg = document.getElementById('current-avatar');
     avatarPlaceholder = document.getElementById('avatar-placeholder');
@@ -48,7 +48,7 @@ function initializeDOMElements() {
     avatarInput = document.getElementById('avatar-input');
     uploadAvatarBtn = document.getElementById('upload-avatar-btn');
     removeAvatarBtn = document.getElementById('remove-avatar-btn');
-    
+
     // Delete account elements
     deleteAccountModal = document.getElementById('delete-account-modal');
     deleteAccountBtn = document.getElementById('delete-account-btn');
@@ -60,16 +60,16 @@ async function checkAuthentication() {
         const response = await fetch(CONFIG.apiUrl('api/users/me'), {
             credentials: 'include'
         });
-        
+
         if (!response.ok) {
             console.log('Not authenticated, redirecting to login');
             window.location.href = '/login.html';
             return;
         }
-        
+
         const data = await response.json();
         currentUser = data.user;
-        
+
         // Update UI
         if (userNameSpan) {
             userNameSpan.textContent = currentUser.full_name;
@@ -79,7 +79,7 @@ async function checkAuthentication() {
         if (dashboardLink) {
             dashboardLink.href = currentUser.role === 'admin' ? '/admin_dashboard.html' : '/member_dashboard.html';
         }
-        
+
         console.log('User authenticated:', currentUser.email, 'Role:', currentUser.role);
     } catch (error) {
         console.error('Authentication check failed:', error);
@@ -92,7 +92,7 @@ function setupEventListeners() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', handleLogout);
     }
-    
+
     // Forms
     if (profileForm) {
         profileForm.addEventListener('submit', handleProfileUpdate);
@@ -103,7 +103,7 @@ function setupEventListeners() {
     if (preferencesForm) {
         preferencesForm.addEventListener('submit', handlePreferencesUpdate);
     }
-    
+
     // Avatar upload
     if (avatarUploadZone) {
         avatarUploadZone.addEventListener('click', () => avatarInput.click());
@@ -111,19 +111,19 @@ function setupEventListeners() {
         avatarUploadZone.addEventListener('dragleave', handleAvatarDragLeave);
         avatarUploadZone.addEventListener('drop', handleAvatarDrop);
     }
-    
+
     if (avatarInput) {
         avatarInput.addEventListener('change', handleAvatarSelection);
     }
-    
+
     if (uploadAvatarBtn) {
         uploadAvatarBtn.addEventListener('click', handleAvatarUpload);
     }
-    
+
     if (removeAvatarBtn) {
         removeAvatarBtn.addEventListener('click', handleAvatarRemove);
     }
-    
+
     // Password toggle buttons
     document.querySelectorAll('.toggle-password').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -132,32 +132,32 @@ function setupEventListeners() {
             input.setAttribute('type', type);
         });
     });
-    
+
     // Character counters
     const bioInput = document.getElementById('profile-bio');
     const skillsInput = document.getElementById('profile-skills');
     const bioCount = document.getElementById('bio-count');
     const skillsCount = document.getElementById('skills-count');
-    
+
     if (bioInput && bioCount) {
         bioInput.addEventListener('input', () => {
             bioCount.textContent = bioInput.value.length;
         });
     }
-    
+
     if (skillsInput && skillsCount) {
         skillsInput.addEventListener('input', () => {
             skillsCount.textContent = skillsInput.value.length;
         });
     }
-    
+
     // Delete account
     if (deleteAccountBtn) {
         deleteAccountBtn.addEventListener('click', () => {
             deleteAccountModal.classList.remove('hidden');
         });
     }
-    
+
     if (confirmDeleteBtn) {
         confirmDeleteBtn.addEventListener('click', handleAccountDelete);
     }
@@ -166,19 +166,19 @@ function setupEventListeners() {
 function initializeTabs() {
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
-    
+
     tabButtons.forEach(button => {
         button.addEventListener('click', () => {
             const targetTab = button.getAttribute('data-tab');
-            
+
             // Remove active class from all buttons and contents
             tabButtons.forEach(btn => btn.classList.remove('active'));
             tabContents.forEach(content => content.classList.remove('active'));
-            
+
             // Add active class to clicked button and corresponding content
             button.classList.add('active');
             document.getElementById(`${targetTab}-tab`).classList.add('active');
-            
+
             // Special handling for activity tab
             if (targetTab === 'activity') {
                 loadUserActivity();
@@ -194,7 +194,7 @@ async function loadUserData() {
         const emailInput = document.getElementById('profile-email');
         const bioInput = document.getElementById('profile-bio');
         const skillsInput = document.getElementById('profile-skills');
-        
+
         if (fullNameInput) fullNameInput.value = currentUser.full_name || '';
         if (emailInput) emailInput.value = currentUser.email || '';
         if (bioInput) {
@@ -205,23 +205,23 @@ async function loadUserData() {
             skillsInput.value = currentUser.skills || '';
             document.getElementById('skills-count').textContent = (currentUser.skills || '').length;
         }
-        
+
         // Populate preferences form
         const emailNotifications = document.getElementById('email-notifications');
         const pushNotifications = document.getElementById('push-notifications');
         const privacyLevel = document.getElementById('privacy-level');
-        
+
         if (emailNotifications) emailNotifications.checked = currentUser.email_notifications !== false;
         if (pushNotifications) pushNotifications.checked = currentUser.push_notifications !== false;
         if (privacyLevel) privacyLevel.value = currentUser.privacy_level || 'public';
-        
+
         // Load avatar
         if (currentUser.avatar_url) {
             showCurrentAvatar(currentUser.avatar_url);
         } else {
             showAvatarPlaceholder();
         }
-        
+
     } catch (error) {
         console.error('Error loading user data:', error);
         showMessage('Error loading user data', 'error');
@@ -247,19 +247,19 @@ function showAvatarPlaceholder() {
 
 async function handleProfileUpdate(e) {
     e.preventDefault();
-    
+
     const submitBtn = document.getElementById('profile-submit-btn');
     const submitText = submitBtn?.querySelector('.submit-text');
     const submitLoading = submitBtn?.querySelector('.submit-loading');
-    
+
     if (submitBtn) submitBtn.disabled = true;
     if (submitText) submitText.classList.add('hidden');
     if (submitLoading) submitLoading.classList.remove('hidden');
-    
+
     try {
         const formData = new FormData(profileForm);
         const data = Object.fromEntries(formData);
-        
+
         const response = await fetch(CONFIG.apiUrl('api/users/me/profile'), {
             method: 'PUT',
             headers: {
@@ -268,23 +268,23 @@ async function handleProfileUpdate(e) {
             credentials: 'include',
             body: JSON.stringify(data)
         });
-        
+
         const result = await response.json();
-        
+
         if (!response.ok) {
             throw new Error(result.message || 'Failed to update profile');
         }
-        
+
         // Update current user data
         currentUser = { ...currentUser, ...result.user };
-        
+
         // Update user name in nav
         if (userNameSpan) {
             userNameSpan.textContent = currentUser.full_name;
         }
-        
+
         showMessage('Profile updated successfully!', 'success');
-        
+
     } catch (error) {
         console.error('Error updating profile:', error);
         showMessage(error.message, 'error');
@@ -297,28 +297,28 @@ async function handleProfileUpdate(e) {
 
 async function handlePasswordChange(e) {
     e.preventDefault();
-    
+
     const submitBtn = document.getElementById('password-submit-btn');
     const submitText = submitBtn?.querySelector('.submit-text');
     const submitLoading = submitBtn?.querySelector('.submit-loading');
-    
+
     if (submitBtn) submitBtn.disabled = true;
     if (submitText) submitText.classList.add('hidden');
     if (submitLoading) submitLoading.classList.remove('hidden');
-    
+
     try {
         const formData = new FormData(passwordForm);
         const data = Object.fromEntries(formData);
-        
+
         // Client-side validation
         if (data.new_password !== data.confirm_password) {
             throw new Error('New passwords do not match');
         }
-        
+
         if (data.new_password.length < 6) {
             throw new Error('New password must be at least 6 characters long');
         }
-        
+
         const response = await fetch(CONFIG.apiUrl('api/users/me/password'), {
             method: 'PUT',
             headers: {
@@ -327,16 +327,16 @@ async function handlePasswordChange(e) {
             credentials: 'include',
             body: JSON.stringify(data)
         });
-        
+
         const result = await response.json();
-        
+
         if (!response.ok) {
             throw new Error(result.message || 'Failed to change password');
         }
-        
+
         showMessage('Password changed successfully!', 'success');
         passwordForm.reset();
-        
+
     } catch (error) {
         console.error('Error changing password:', error);
         showMessage(error.message, 'error');
@@ -349,15 +349,15 @@ async function handlePasswordChange(e) {
 
 async function handlePreferencesUpdate(e) {
     e.preventDefault();
-    
+
     const submitBtn = document.getElementById('preferences-submit-btn');
     const submitText = submitBtn?.querySelector('.submit-text');
     const submitLoading = submitBtn?.querySelector('.submit-loading');
-    
+
     if (submitBtn) submitBtn.disabled = true;
     if (submitText) submitText.classList.add('hidden');
     if (submitLoading) submitLoading.classList.remove('hidden');
-    
+
     try {
         const formData = new FormData(preferencesForm);
         const data = {
@@ -365,7 +365,7 @@ async function handlePreferencesUpdate(e) {
             push_notifications: formData.has('push_notifications'),
             privacy_level: formData.get('privacy_level')
         };
-        
+
         const response = await fetch(CONFIG.apiUrl('api/users/me/preferences'), {
             method: 'PUT',
             headers: {
@@ -374,18 +374,18 @@ async function handlePreferencesUpdate(e) {
             credentials: 'include',
             body: JSON.stringify(data)
         });
-        
+
         const result = await response.json();
-        
+
         if (!response.ok) {
             throw new Error(result.message || 'Failed to update preferences');
         }
-        
+
         // Update current user data
         currentUser = { ...currentUser, ...result.preferences };
-        
+
         showMessage('Preferences updated successfully!', 'success');
-        
+
     } catch (error) {
         console.error('Error updating preferences:', error);
         showMessage(error.message, 'error');
@@ -409,7 +409,7 @@ function handleAvatarDragLeave(e) {
 function handleAvatarDrop(e) {
     e.preventDefault();
     avatarUploadZone.classList.remove('dragover');
-    
+
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0 && files[0].type.startsWith('image/')) {
         handleAvatarFile(files[0]);
@@ -425,7 +425,7 @@ function handleAvatarSelection(e) {
 
 function handleAvatarFile(file) {
     selectedAvatar = file;
-    
+
     // Show preview
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -438,7 +438,7 @@ function handleAvatarFile(file) {
         }
     };
     reader.readAsDataURL(file);
-    
+
     // Show upload button
     if (uploadAvatarBtn) {
         uploadAvatarBtn.classList.remove('hidden');
@@ -447,43 +447,43 @@ function handleAvatarFile(file) {
 
 async function handleAvatarUpload() {
     if (!selectedAvatar) return;
-    
+
     const uploadBtn = uploadAvatarBtn;
     const uploadText = uploadBtn?.querySelector('.upload-text');
     const uploadLoading = uploadBtn?.querySelector('.upload-loading');
-    
+
     if (uploadBtn) uploadBtn.disabled = true;
     if (uploadText) uploadText.classList.add('hidden');
     if (uploadLoading) uploadLoading.classList.remove('hidden');
-    
+
     try {
         const formData = new FormData();
         formData.append('avatar', selectedAvatar);
-        
+
         const response = await fetch(CONFIG.apiUrl('api/users/me/avatar'), {
             method: 'POST',
             credentials: 'include',
             body: formData
         });
-        
+
         const result = await response.json();
-        
+
         if (!response.ok) {
             throw new Error(result.message || 'Failed to upload avatar');
         }
-        
+
         // Update current user data
         currentUser.avatar_url = result.avatar_url;
-        
+
         // Update UI
         showCurrentAvatar(result.avatar_url);
         if (uploadBtn) uploadBtn.classList.add('hidden');
-        
+
         selectedAvatar = null;
         avatarInput.value = '';
-        
+
         showMessage('Avatar uploaded successfully!', 'success');
-        
+
     } catch (error) {
         console.error('Error uploading avatar:', error);
         showMessage(error.message, 'error');
@@ -500,21 +500,21 @@ async function handleAvatarRemove() {
             method: 'DELETE',
             credentials: 'include'
         });
-        
+
         const result = await response.json();
-        
+
         if (!response.ok) {
             throw new Error(result.message || 'Failed to remove avatar');
         }
-        
+
         // Update current user data
         currentUser.avatar_url = null;
-        
+
         // Update UI
         showAvatarPlaceholder();
-        
+
         showMessage('Avatar removed successfully!', 'success');
-        
+
     } catch (error) {
         console.error('Error removing avatar:', error);
         showMessage(error.message, 'error');
@@ -525,30 +525,30 @@ async function loadUserActivity() {
     const activityLoading = document.getElementById('activity-loading');
     const activityList = document.getElementById('activity-list');
     const noActivity = document.getElementById('no-activity');
-    
+
     if (activityLoading) activityLoading.classList.remove('hidden');
     if (activityList) activityList.classList.add('hidden');
     if (noActivity) noActivity.classList.add('hidden');
-    
+
     try {
         const response = await fetch(CONFIG.apiUrl('api/users/me/activity?limit=20'), {
             credentials: 'include'
         });
-        
+
         if (!response.ok) {
             throw new Error('Failed to load activity');
         }
-        
+
         const data = await response.json();
         const activities = data.activities || [];
-        
+
         if (activities.length === 0) {
             if (noActivity) noActivity.classList.remove('hidden');
         } else {
             displayActivity(activities);
             if (activityList) activityList.classList.remove('hidden');
         }
-        
+
     } catch (error) {
         console.error('Error loading activity:', error);
         if (noActivity) {
@@ -563,16 +563,16 @@ async function loadUserActivity() {
 function displayActivity(activities) {
     const activityList = document.getElementById('activity-list');
     if (!activityList) return;
-    
+
     activityList.innerHTML = '';
-    
+
     activities.forEach(activity => {
         const activityItem = document.createElement('div');
         activityItem.className = 'flex items-center gap-3 p-4 bg-gray-50 rounded-lg';
-        
+
         const icon = getActivityIcon(activity.type);
         const date = new Date(activity.activity_date).toLocaleDateString();
-        
+
         activityItem.innerHTML = `
             <div class="flex-shrink-0">
                 ${icon}
@@ -582,7 +582,7 @@ function displayActivity(activities) {
                 <p class="text-xs text-gray-500">${date}</p>
             </div>
         `;
-        
+
         activityList.appendChild(activityItem);
     });
 }
@@ -602,20 +602,20 @@ function getActivityIcon(type) {
 
 async function handleAccountDelete() {
     const password = document.getElementById('delete-password').value;
-    
+
     if (!password) {
         showMessage('Password is required to delete account', 'error');
         return;
     }
-    
+
     const deleteBtn = confirmDeleteBtn;
     const deleteText = deleteBtn?.querySelector('.delete-text');
     const deleteLoading = deleteBtn?.querySelector('.delete-loading');
-    
+
     if (deleteBtn) deleteBtn.disabled = true;
     if (deleteText) deleteText.classList.add('hidden');
     if (deleteLoading) deleteLoading.classList.remove('hidden');
-    
+
     try {
         const response = await fetch(CONFIG.apiUrl('api/users/me/account'), {
             method: 'DELETE',
@@ -625,20 +625,20 @@ async function handleAccountDelete() {
             credentials: 'include',
             body: JSON.stringify({ password })
         });
-        
+
         const result = await response.json();
-        
+
         if (!response.ok) {
             throw new Error(result.message || 'Failed to delete account');
         }
-        
+
         showMessage('Account deleted successfully. Redirecting...', 'success');
-        
+
         // Redirect to home page after 2 seconds
         setTimeout(() => {
             window.location.href = '/';
         }, 2000);
-        
+
     } catch (error) {
         console.error('Error deleting account:', error);
         showMessage(error.message, 'error');
@@ -675,7 +675,7 @@ function showMessage(message, type = 'info', duration = 3000) {
         window.showMessage(message, type, duration);
         return;
     }
-    
+
     // Fallback implementation
     console.log(`${type.toUpperCase()}: ${message}`);
     alert(message);
@@ -688,3 +688,49 @@ window.closeDeleteModal = function() {
         document.getElementById('delete-password').value = '';
     }
 };
+
+async function handleProfileUpdate(e) {
+    e.preventDefault();
+
+    const submitBtn = document.getElementById('profile-submit-btn');
+    const submitText = submitBtn?.querySelector('.submit-text');
+    const submitLoading = submitBtn?.querySelector('.submit-loading');
+
+    if (submitBtn) submitBtn.disabled = true;
+    if (submitText) submitText.classList.add('hidden');
+    if (submitLoading) submitLoading.classList.remove('hidden');
+
+    try {
+        const formData = new FormData(profileForm);
+        const data = Object.fromEntries(formData);
+
+        const response = await fetch(CONFIG.apiUrl('api/users/me/profile'), {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Update the displayed user name in header
+            const userNameElement = document.getElementById('user-name');
+            if (userNameElement) {
+                userNameElement.textContent = fullName;
+            }
+            showNotification('Profile updated successfully!', 'success');
+        } else {
+            showNotification(result.message || 'Failed to update profile', 'error');
+        }
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        showNotification('Failed to update profile. Please try again.', 'error');
+    } finally {
+        if (submitBtn) submitBtn.disabled = false;
+        if (submitText) submitText.classList.remove('hidden');
+        if (submitLoading) submitLoading.classList.add('hidden');
+    }
+}

@@ -49,30 +49,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- 2. FETCH DASHBOARD STATS ---
     async function loadDashboardStats() {
         try {
-            const [statsRes, resourcesRes] = await Promise.all([
-                fetch(CONFIG.apiUrl('api/admin/stats')),
-                fetch(CONFIG.apiUrl('api/resources/count'))
-            ]);
-
+            const statsRes = await fetch(CONFIG.apiUrl('api/admin/stats'));
             if (!statsRes.ok) throw new Error('Failed to fetch stats');
-            if (!resourcesRes.ok) throw new Error('Failed to fetch resources');
-
             const stats = await statsRes.json();
-            const resources = await resourcesRes.json();
 
-            document.getElementById('total-members').textContent = stats.totalMembers;
-            document.getElementById('total-events').textContent = stats.totalEvents;
-            document.getElementById('total-visits').textContent = stats.totalVisits;
-            document.getElementById('total-resources').textContent = resources.count;
+            document.getElementById('total-members').textContent = stats.total_members;
+            document.getElementById('total-events').textContent = stats.total_events;
+            document.getElementById('total-visits').textContent = stats.total_visits;
+            document.getElementById('total-resources').textContent = stats.total_resources;
 
             // Load additional stats
             await loadAdditionalStats();
-
+            // Hide loader and show root after stats are loaded
+            if (loader) loader.style.display = 'none';
+            if (rootEl) rootEl.classList.remove('hidden');
+        
         } catch (error) {
             console.error('Failed to load dashboard stats:', error);
             showToast('Could not load dashboard data.', 'error');
         }
     }
+
+    // --- 3. LOAD DASHBOARD STATS ON PAGE LOAD ---
+    await loadDashboardStats();
 
     // Load additional statistics
     async function loadAdditionalStats() {
@@ -229,7 +228,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const res = await fetch(CONFIG.apiUrl('api/admin/recent-activity'));
             if (!res.ok) throw new Error('Failed to fetch recent activity');
             
-            const activities = await res.json();
+            const activitiesObj = await res.json();
+            const activities = activitiesObj.recent_activity || [];
             
             if (!Array.isArray(activities) || activities.length === 0) {
                 container.innerHTML = '<div class="text-gray-500">No recent activity to display.</div>';

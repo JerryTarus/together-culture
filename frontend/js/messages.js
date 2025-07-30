@@ -1,7 +1,54 @@
 // frontend/js/messages.js
 // Refactored for conversation-based messaging
 
+
 document.addEventListener('DOMContentLoaded', () => {
+
+        // --- Sidebar Member Search & List ---
+    const memberSearchInput = document.getElementById('member-search');
+    const membersList = document.getElementById('members-list');
+
+    function renderMembersSidebar(filter = '') {
+        if (!membersList || !Array.isArray(members)) return;
+        membersList.innerHTML = '';
+        let filtered = members.filter(u => u.id !== currentUser.id);
+        if (filter.trim() !== '') {
+            const f = filter.trim().toLowerCase();
+            filtered = filtered.filter(u =>
+                (u.full_name && u.full_name.toLowerCase().includes(f)) || (u.email && u.email.toLowerCase().includes(f))
+            );
+        }
+        if (filtered.length === 0) {
+            membersList.innerHTML = '<div class="text-center text-gray-400 py-4">No users found</div>';
+            return;
+        }
+        filtered.forEach(user => {
+            const userDiv = document.createElement('div');
+            userDiv.className = 'flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer';
+            userDiv.dataset.userId = user.id;
+            userDiv.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600">${getInitials(user.full_name)}</div>
+                <div>
+                  <div class="font-medium text-gray-900">${user.full_name}</div>
+                  <div class="text-xs text-gray-500">${user.email}</div>
+                </div>
+            `;
+            userDiv.onclick = () => startConversationWith(user);
+            membersList.appendChild(userDiv);
+        });
+    }
+
+    if (memberSearchInput) {
+        memberSearchInput.addEventListener('input', () => {
+            renderMembersSidebar(memberSearchInput.value);
+        });
+    }
+    // Re-render member list after fetch
+    function refreshSidebarMembers() {
+        renderMembersSidebar(memberSearchInput ? memberSearchInput.value : '');
+    }
+
+
     let currentUser = null;
     let conversations = [];
     let members = [];
@@ -26,11 +73,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function initialize() {
         await fetchCurrentUser();
+        // Fix dashboard link in header for admin
+        const dashboardLink = document.getElementById('dashboard-link');
+        if (dashboardLink && currentUser && currentUser.role === 'admin') {
+            dashboardLink.href = '/admin_dashboard.html';
+        } else if (dashboardLink) {
+            dashboardLink.href = '/member_dashboard.html';
+        }
         buildSidebar();
         await fetchMembers();
         await fetchConversations();
-        renderMemberDirectory();
+        refreshSidebarMembers();
         renderConversationList();
+        // Ensure clicking a user always loads chat
+        if (membersList) {
+            membersList.onclick = (e) => {
+                const userDiv = e.target.closest('[data-user-id]');
+                if (userDiv) {
+                    const userId = userDiv.dataset.userId;
+                    const user = members.find(u => u.id == userId);
+                    if (user) startConversationWith(user);
+                }
+            };
+        }
         setupEventListeners();
     }
 
@@ -125,9 +190,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderConversationList() {
+        const conversationList = document.getElementById('conversations-list');
+        if (!conversationList) return;
         conversationList.innerHTML = '';
-        if (conversations.length === 0) {
-            conversationList.innerHTML = '<div class="text-gray-500 p-2">No conversations yet.</div>';
+        if (!conversations || conversations.length === 0) {
+            conversationList.innerHTML = '<div class="text-gray-400 p-2">No conversations yet.</div>';
             return;
         }
         conversations.forEach(conv => {
@@ -136,23 +203,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!otherUser) return;
             const unread = conv.unreadCount || 0;
             const btn = document.createElement('div');
-            btn.className = 'flex items-center gap-3 p-2 rounded hover:bg-brand-beige cursor-pointer relative group';
+            btn.className = 'flex items-center gap-3 p-2 rounded hover:bg-brand-beige cursor-pointer relative group' + (selectedConversationId === conv.id ? ' bg-blue-50' : '');
             btn.innerHTML = `
                 <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 group-hover:bg-blue-200 transition">${getInitials(otherUser.full_name)}</div>
                 <span class="font-medium text-gray-700">${otherUser.full_name}</span>
                 ${unread > 0 ? `<span class="absolute right-3 top-2 bg-brand-primary text-white text-xs rounded-full px-2 py-0.5 animate-pulse">${unread}</span>` : ''}
             `;
             btn.onclick = () => openConversation(conv.id, otherUser.id, otherUser.full_name);
-            btn.appendChild(nameSpan);
-            
-            if (conv.unreadCount > 0) {
-                const unreadBadge = document.createElement('span');
-                unreadBadge.className = 'bg-blue-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center';
-                unreadBadge.textContent = conv.unreadCount;
-                btn.appendChild(unreadBadge);
-            }
-            
-            btn.onclick = () => openConversation(conv.id, otherUserId, otherUserName);
             conversationList.appendChild(btn);
         });
     }
@@ -164,8 +221,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ other_user_id: user.id })
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message);
+            let data = null;
+            try {
+                data = await res.json();
+            } catch (e) {
+                throw new Error('Server error. Please try again.');
+            }
+            if (!res.ok) throw new Error(data && data.message ? data.message : 'Could not start conversation');
             await fetchConversations();
             renderConversationList();
             openConversation(data.conversation_id, user.id, user.full_name);

@@ -78,6 +78,12 @@ async function checkAuthentication() {
             userNameSpan.textContent = currentUser.full_name;
         }
         
+        // Update dashboard link in header navigation
+        const dashboardLink = document.querySelector('a[href="/member_dashboard.html"]');
+        if (dashboardLink && currentUser && currentUser.role === 'admin') {
+            dashboardLink.href = '/admin_dashboard.html';
+        }
+        
         console.log('User authenticated:', currentUser.email, 'Role:', currentUser.role);
     } catch (error) {
         console.error('Authentication check failed:', error);

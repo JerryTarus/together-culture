@@ -1,262 +1,431 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRM Application</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-            color: #333;
+
+// frontend/js/messages.js
+
+let currentUser = null;
+let currentConversation = null;
+let allMembers = [];
+let conversations = [];
+
+// DOM Elements
+let membersContainer, conversationsContainer, chatContainer;
+let membersList, chatMessages, messageInput, sendButton;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('Messages page loaded');
+
+    // Initialize DOM elements
+    initializeDOMElements();
+
+    // Check authentication
+    await checkAuthentication();
+
+    // Load initial data
+    await Promise.all([
+        loadAllMembers(),
+        loadConversations()
+    ]);
+
+    // Setup event listeners
+    setupEventListeners();
+});
+
+function initializeDOMElements() {
+    membersContainer = document.getElementById('members-container');
+    conversationsContainer = document.getElementById('conversations-container');
+    chatContainer = document.getElementById('chat-container');
+    membersList = document.getElementById('members-list');
+    chatMessages = document.getElementById('chat-messages');
+    messageInput = document.getElementById('message-input');
+    sendButton = document.getElementById('send-button');
+}
+
+async function checkAuthentication() {
+    try {
+        const response = await fetch(CONFIG.apiUrl('api/users/me'), {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            window.location.href = '/login.html';
+            return;
         }
 
-        /* Navigation Bar */
-        nav {
-            background-color: #333;
-            color: white;
-            padding: 10px 0;
-            text-align: center;
+        const data = await response.json();
+        currentUser = data.user;
+
+        // Update user name in UI
+        const userNameElement = document.getElementById('user-name');
+        if (userNameElement) {
+            userNameElement.textContent = currentUser.full_name;
         }
 
-        nav a {
-            color: white;
-            text-decoration: none;
-            padding: 10px 20px;
-            display: inline-block;
+        // Update dashboard link based on role
+        const dashboardLink = document.getElementById('dashboard-link');
+        if (dashboardLink && currentUser.role === 'admin') {
+            dashboardLink.href = './admin_dashboard.html';
         }
 
-        /* Homepage Styling */
-        .homepage {
-            padding: 20px;
-            text-align: center;
+        console.log('User authenticated:', currentUser.email, 'Role:', currentUser.role);
+    } catch (error) {
+        console.error('Authentication check failed:', error);
+        window.location.href = '/login.html';
+    }
+}
+
+async function loadAllMembers() {
+    try {
+        const response = await fetch(CONFIG.apiUrl('api/users'), {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to load members');
         }
 
-        .homepage h1 {
-            color: #333;
-        }
+        const members = await response.json();
+        allMembers = members.filter(member => member.id !== currentUser.id && member.status === 'approved');
 
-        .homepage p {
-            font-size: 1.1em;
-            line-height: 1.6;
-            margin-bottom: 20px;
-        }
+        displayMembers(allMembers);
 
-        /* Interactive Cards */
-        .card-container {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 20px;
-            padding: 20px;
-        }
+    } catch (error) {
+        console.error('Error loading members:', error);
+        showMessage('Failed to load members', 'error');
+    }
+}
 
-        .card {
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            width: 300px;
-            text-align: left;
-            transition: transform 0.3s ease-in-out;
-            border: 1px solid #ddd;
-        }
+function displayMembers(members) {
+    if (!membersList) return;
 
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
+    if (members.length === 0) {
+        membersList.innerHTML = '<div class="p-4 text-gray-500 text-center">No members available</div>';
+        return;
+    }
 
-        .card h3 {
-            color: #333;
-            margin-bottom: 10px;
-        }
+    membersList.innerHTML = '';
 
-        .card p {
-            color: #666;
-        }
+    members.forEach(member => {
+        const memberItem = document.createElement('div');
+        memberItem.className = 'member-item p-4 border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors';
+        memberItem.onclick = () => startConversation(member);
 
-        /* Button Styling */
-        .button {
-            background-color: #5cb85c; /* Green */
-            border: none;
-            color: white;
-            padding: 12px 24px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin: 4px 2px;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: background-color 0.3s;
-        }
-
-        .button:hover {
-            background-color: #449d44;
-        }
-
-        /* Footer Styling */
-        footer {
-            background-color: #333;
-            color: white;
-            text-align: center;
-            padding: 10px 0;
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-        }
-
-        /* Login and Signup Pages */
-        .auth-page {
-            max-width: 400px;
-            margin: 50px auto;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .auth-page h2 {
-            text-align: center;
-            color: #333;
-        }
-
-        .auth-page form {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .auth-page label {
-            margin-top: 10px;
-            color: #333;
-        }
-
-        .auth-page input {
-            padding: 8px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        /* Message Styling */
-        #message {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #5cb85c;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
-            z-index: 1000;
-            display: none;
-        }
-    </style>
-</head>
-<body>
-
-    <!-- Navigation Bar -->
-    <nav>
-        <a href="/">Home</a>
-        <a href="/dashboard.html">Dashboard</a>
-        <a href="/community.html">Community</a>
-        <a href="/events.html">Events</a>
-        <a href="/messages.html">Messages</a>
-        <a href="/settings.html">Settings</a>
-        <a href="/login.html">Login</a>
-        <a href="/signup.html">Signup</a>
-    </nav>
-
-    <!-- Homepage Content -->
-    <div class="homepage">
-        <h1>Welcome to Our CRM</h1>
-        <p>Your all-in-one solution for managing customer relationships and building a thriving community.</p>
-
-        <!-- Interactive Cards -->
-        <div class="card-container">
-            <div class="card">
-                <h3>Manage Contacts</h3>
-                <p>Easily organize and access your contacts, leads, and customers.</p>
-                <a href="/contacts.html" class="button">Learn More</a>
+        memberItem.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-brand-primary text-white rounded-full flex items-center justify-center font-semibold">
+                    ${member.full_name.charAt(0).toUpperCase()}
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-medium text-gray-900">${escapeHtml(member.full_name)}</h4>
+                    <p class="text-sm text-gray-500">${escapeHtml(member.email)}</p>
+                </div>
+                <div class="text-sm text-gray-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </div>
             </div>
-            <div class="card">
-                <h3>Track Interactions</h3>
-                <p>Keep a detailed record of all interactions with your contacts.</p>
-                <a href="/interactions.html" class="button">Learn More</a>
-            </div>
-            <div class="card">
-                <h3>Build Community</h3>
-                <p>Foster a strong community around your brand and engage with your audience.</p>
-                <a href="/community.html" class="button">Learn More</a>
-            </div>
-        </div>
-    </div>
+        `;
 
-    <!-- Login Page -->
-    <div class="auth-page" id="login-page" style="display: none;">
-        <h2>Login</h2>
-        <form id="login-form">
-            <label for="login-email">Email</label>
-            <input type="email" id="login-email" name="login-email" required>
-            <label for="login-password">Password</label>
-            <input type="password" id="login-password" name="login-password" required>
-            <button type="submit" class="button">Login</button>
-            <a href="/" class="button">Back to Home</a> <!-- Homepage Navigation Button -->
-        </form>
-    </div>
+        membersList.appendChild(memberItem);
+    });
+}
 
-    <!-- Signup Page -->
-    <div class="auth-page" id="signup-page" style="display: none;">
-        <h2>Signup</h2>
-        <form id="signup-form">
-            <label for="signup-name">Name</label>
-            <input type="text" id="signup-name" name="signup-name" required>
-            <label for="signup-email">Email</label>
-            <input type="email" id="signup-email" name="signup-email" required>
-            <label for="signup-password">Password</label>
-            <input type="password" id="signup-password" name="signup-password" required>
-            <button type="submit" class="button">Signup</button>
-            <a href="/" class="button">Back to Home</a> <!-- Homepage Navigation Button -->
-        </form>
-    </div>
+async function loadConversations() {
+    try {
+        const response = await fetch(CONFIG.apiUrl('api/messages/conversations'), {
+            credentials: 'include'
+        });
 
-    <!-- Message Area -->
-    <div id="message"></div>
-
-    <!-- Footer -->
-    <footer>
-        &copy; 2024 CRM Application. All rights reserved.
-    </footer>
-
-    <script>
-        function showMessage(message, type, duration) {
-            const messageDiv = document.getElementById('message');
-            messageDiv.innerText = message;
-            messageDiv.style.backgroundColor = type === 'success' ? '#5cb85c' : '#d9534f';
-            messageDiv.style.display = 'block';
-
-            setTimeout(() => {
-                messageDiv.style.display = 'none';
-            }, duration);
+        if (!response.ok) {
+            throw new Error('Failed to load conversations');
         }
 
-        // Example Logout Function (Adjust as needed)
-        function logout() {
-            // Clear any local storage/session data
-            localStorage.clear();
-            sessionStorage.clear();
+        conversations = await response.json();
+        displayConversations(conversations);
 
-            // Show logout message and redirect to homepage
-            showMessage('Logged out successfully. Redirecting...', 'success', 1500);
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 1600);
+    } catch (error) {
+        console.error('Error loading conversations:', error);
+        // Don't show error for conversations as it's optional
+    }
+}
+
+function displayConversations(conversations) {
+    if (!conversationsContainer) return;
+
+    if (conversations.length === 0) {
+        conversationsContainer.innerHTML = '<div class="p-4 text-gray-500 text-center">No conversations yet</div>';
+        return;
+    }
+
+    conversationsContainer.innerHTML = '';
+
+    conversations.forEach(conversation => {
+        const conversationItem = document.createElement('div');
+        conversationItem.className = 'conversation-item p-4 border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors';
+        conversationItem.onclick = () => openConversation(conversation);
+
+        const otherUser = conversation.other_user;
+        const lastMessage = conversation.last_message;
+
+        conversationItem.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-brand-primary text-white rounded-full flex items-center justify-center font-semibold">
+                    ${otherUser.full_name.charAt(0).toUpperCase()}
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-medium text-gray-900">${escapeHtml(otherUser.full_name)}</h4>
+                    <p class="text-sm text-gray-500 truncate">${lastMessage ? escapeHtml(lastMessage.content) : 'No messages yet'}</p>
+                </div>
+                <div class="text-xs text-gray-400">
+                    ${lastMessage ? formatTime(lastMessage.sent_at) : ''}
+                </div>
+            </div>
+        `;
+
+        conversationsContainer.appendChild(conversationItem);
+    });
+}
+
+async function startConversation(member) {
+    currentConversation = {
+        other_user: member,
+        messages: []
+    };
+
+    // Show chat container
+    if (chatContainer) {
+        chatContainer.classList.remove('hidden');
+    }
+
+    // Update chat header
+    const chatHeader = document.getElementById('chat-header');
+    if (chatHeader) {
+        chatHeader.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-brand-primary text-white rounded-full flex items-center justify-center font-semibold">
+                    ${member.full_name.charAt(0).toUpperCase()}
+                </div>
+                <h3 class="font-semibold text-gray-900">${escapeHtml(member.full_name)}</h3>
+            </div>
+        `;
+    }
+
+    // Load messages for this conversation
+    await loadMessages(member.id);
+}
+
+async function openConversation(conversation) {
+    currentConversation = conversation;
+
+    // Show chat container
+    if (chatContainer) {
+        chatContainer.classList.remove('hidden');
+    }
+
+    // Update chat header
+    const chatHeader = document.getElementById('chat-header');
+    if (chatHeader) {
+        chatHeader.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-brand-primary text-white rounded-full flex items-center justify-center font-semibold">
+                    ${conversation.other_user.full_name.charAt(0).toUpperCase()}
+                </div>
+                <h3 class="font-semibold text-gray-900">${escapeHtml(conversation.other_user.full_name)}</h3>
+            </div>
+        `;
+    }
+
+    // Load messages for this conversation
+    await loadMessages(conversation.other_user.id);
+}
+
+async function loadMessages(otherUserId) {
+    try {
+        const response = await fetch(CONFIG.apiUrl(`api/messages/conversation/${otherUserId}`), {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to load messages');
         }
 
-         // Add event listeners or other scripts here as needed
-    </script>
-</body>
-</html>
+        const messages = await response.json();
+        displayMessages(messages);
+
+    } catch (error) {
+        console.error('Error loading messages:', error);
+        if (chatMessages) {
+            chatMessages.innerHTML = '<div class="p-4 text-gray-500 text-center">Failed to load messages</div>';
+        }
+    }
+}
+
+function displayMessages(messages) {
+    if (!chatMessages) return;
+
+    if (messages.length === 0) {
+        chatMessages.innerHTML = '<div class="p-4 text-gray-500 text-center">No messages yet. Start the conversation!</div>';
+        return;
+    }
+
+    chatMessages.innerHTML = '';
+
+    messages.forEach(message => {
+        const messageDiv = document.createElement('div');
+        const isOwnMessage = message.sender_id === currentUser.id;
+
+        messageDiv.className = `message-item mb-4 ${isOwnMessage ? 'text-right' : 'text-left'}`;
+
+        messageDiv.innerHTML = `
+            <div class="inline-block max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                isOwnMessage 
+                    ? 'bg-brand-primary text-white' 
+                    : 'bg-gray-200 text-gray-900'
+            }">
+                <p class="text-sm">${escapeHtml(message.content)}</p>
+                <p class="text-xs mt-1 ${isOwnMessage ? 'text-brand-primary-light' : 'text-gray-500'}">
+                    ${formatTime(message.sent_at)}
+                </p>
+            </div>
+        `;
+
+        chatMessages.appendChild(messageDiv);
+    });
+
+    // Scroll to bottom
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+async function sendMessage() {
+    if (!currentConversation || !messageInput || !messageInput.value.trim()) {
+        return;
+    }
+
+    const content = messageInput.value.trim();
+    const receiverId = currentConversation.other_user.id;
+
+    try {
+        const response = await fetch(CONFIG.apiUrl('api/messages'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                receiver_id: receiverId,
+                content: content
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to send message');
+        }
+
+        // Clear input
+        messageInput.value = '';
+
+        // Reload messages
+        await loadMessages(receiverId);
+
+        // Reload conversations to update last message
+        await loadConversations();
+
+    } catch (error) {
+        console.error('Error sending message:', error);
+        showMessage('Failed to send message', 'error');
+    }
+}
+
+function setupEventListeners() {
+    // Send button
+    if (sendButton) {
+        sendButton.addEventListener('click', sendMessage);
+    }
+
+    // Message input - send on Enter
+    if (messageInput) {
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    }
+
+    // Logout button
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
+    }
+
+    // Search members
+    const searchInput = document.getElementById('search-members');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const filteredMembers = allMembers.filter(member => 
+                member.full_name.toLowerCase().includes(query) ||
+                member.email.toLowerCase().includes(query)
+            );
+            displayMembers(filteredMembers);
+        });
+    }
+}
+
+async function handleLogout() {
+    try {
+        await fetch(CONFIG.apiUrl('api/auth/logout'), {
+            method: 'POST',
+            credentials: 'include'
+        });
+    } catch (error) {
+        console.error('Logout error:', error);
+    } finally {
+        localStorage.clear();
+        sessionStorage.clear();
+        showMessage('Logged out successfully. Redirecting...', 'success', 1500);
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 1600);
+    }
+}
+
+// Utility functions
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatTime(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now - date;
+
+    if (diff < 60000) { // Less than 1 minute
+        return 'Just now';
+    } else if (diff < 3600000) { // Less than 1 hour
+        const minutes = Math.floor(diff / 60000);
+        return `${minutes}m ago`;
+    } else if (diff < 86400000) { // Less than 1 day
+        const hours = Math.floor(diff / 3600000);
+        return `${hours}h ago`;
+    } else {
+        return date.toLocaleDateString();
+    }
+}
+
+function showMessage(message, type = 'info', duration = 3000) {
+    // Create notification
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg ${
+        type === 'success' ? 'bg-green-500' : 
+        type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+    } text-white`;
+    notification.textContent = message;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.remove();
+    }, duration);
+}

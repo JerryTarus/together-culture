@@ -1,4 +1,3 @@
-
 // frontend/js/member.js
 document.addEventListener('DOMContentLoaded', async () => {
     // Selectors for elements
@@ -26,12 +25,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             type === 'warning' ? 'bg-yellow-500' :
             'bg-brand-primary'
         }`;
-        
+
         const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
         toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
-        
+
         notificationContainer.appendChild(toast);
-        
+
         // Auto remove with fade out
         setTimeout(() => { 
             toast.classList.add('opacity-0', 'transform', 'translate-x-full'); 
@@ -57,32 +56,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const data = await res.json();
             currentUser = data.user || data;
-            
+
             // Redirect admin users to admin dashboard
             if (currentUser.role === 'admin') {
                 window.location.href = './admin_dashboard.html';
                 return;
             }
-            
+
             // Populate the dashboard with user data
             userNameEl.textContent = currentUser.full_name;
             profileNameEl.textContent = currentUser.full_name;
             profileEmailEl.textContent = currentUser.email;
             profileStatusEl.textContent = currentUser.status || 'approved';
-            
+
             // Set profile avatar
             const profileAvatar = document.getElementById('profile-avatar');
             if (profileAvatar) {
                 profileAvatar.textContent = currentUser.full_name.charAt(0).toUpperCase();
             }
-            
+
             // Set status color
             profileStatusEl.className = `capitalize font-semibold ${
                 currentUser.status === 'approved' ? 'text-green-600' : 
                 currentUser.status === 'pending' ? 'text-yellow-600' : 
                 'text-red-600'
             }`;
-            
+
             // Format the date nicely
             const joinedDate = new Date(currentUser.created_at).toLocaleDateString('en-US', {
                 year: 'numeric', month: 'long', day: 'numeric'
@@ -96,10 +95,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Load dashboard stats
             await loadDashboardStats();
-            
+
             // Load upcoming events
             await loadUpcomingEvents();
-            
+
             // Load recent activity
             await loadRecentActivity();
 
@@ -175,9 +174,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const res = await fetch(CONFIG.apiUrl('api/events/upcoming'), { credentials: 'include' });
             const events = res.ok ? await res.json() : [];
-            
+
             const container = document.getElementById('upcoming-events');
-            
+
             if (events.length === 0) {
                 container.innerHTML = `
                     <div class="text-center py-8">
@@ -199,7 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     month: 'short',
                     day: 'numeric'
                 });
-                
+
                 const formattedTime = eventDate.toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',
@@ -208,7 +207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const isToday = eventDate.toDateString() === new Date().toDateString();
                 const isTomorrow = eventDate.toDateString() === new Date(Date.now() + 86400000).toDateString();
-                
+
                 eventsHtml += `
                     <div class="event-card group relative bg-gradient-to-r from-brand-primary/5 to-blue-50 border border-brand-primary/20 rounded-lg p-4 hover:shadow-md transition-all duration-200 cursor-pointer"
                          onclick="window.location.href='./events.html'">
@@ -246,7 +245,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                 `;
             });
-            
+
             container.innerHTML = eventsHtml;
 
         } catch (error) {
@@ -265,9 +264,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const res = await fetch(CONFIG.apiUrl('api/users/me/activity'), { credentials: 'include' });
             const activities = res.ok ? await res.json() : [];
-            
+
             const container = document.getElementById('recent-activity');
-            
+
             if (activities.length === 0) {
                 container.innerHTML = `
                     <div class="text-center py-6">
@@ -285,10 +284,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             activities.slice(0, 5).forEach((activity, index) => {
                 const activityDate = new Date(activity.created_at);
                 const timeAgo = getTimeAgo(activityDate);
-                
+
                 const activityIcon = getActivityIcon(activity.type);
                 const activityColor = getActivityColor(activity.type);
-                
+
                 activitiesHtml += `
                     <div class="activity-item flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
                         <div class="flex-shrink-0">
@@ -303,7 +302,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                 `;
             });
-            
+
             container.innerHTML = activitiesHtml;
 
         } catch (error) {
@@ -328,7 +327,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function getTimeAgo(date) {
         const now = new Date();
         const diffInSeconds = Math.floor((now - date) / 1000);
-        
+
         if (diffInSeconds < 60) return 'Just now';
         if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
         if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
@@ -379,7 +378,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         refreshBtn.disabled = true;
         const originalHtml = refreshBtn.innerHTML;
         refreshBtn.innerHTML = '<svg class="w-4 h-4 inline mr-2 animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Refreshing...';
-        
+
         try {
             await Promise.all([
                 loadDashboardStats(),

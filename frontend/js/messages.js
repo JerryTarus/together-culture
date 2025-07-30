@@ -1,4 +1,3 @@
-
 let currentUser = null;
 let conversations = [];
 let currentConversation = null;
@@ -12,16 +11,16 @@ let userNameSpan, logoutBtn, memberSearchInput, membersList;
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Messages page loaded');
-    
+
     // Initialize DOM elements
     initializeDOMElements();
-    
+
     // Check authentication
     await checkAuthentication();
-    
+
     // Setup event listeners
     setupEventListeners();
-    
+
     // Load initial data
     await Promise.all([
         loadConversations(),
@@ -45,24 +44,24 @@ async function checkAuthentication() {
         const response = await fetch(CONFIG.apiUrl('api/users/me'), {
             credentials: 'include'
         });
-        
+
         if (!response.ok) {
             console.log('Not authenticated, redirecting to login');
             window.location.href = './login.html';
             return;
         }
-        
+
         const data = await response.json();
         currentUser = data.user || data;
-        
+
         // Update UI based on user info
         if (userNameSpan) {
             userNameSpan.textContent = currentUser.full_name;
         }
-        
+
         // Update navigation links based on user role
         updateNavigationLinks();
-        
+
         console.log('User authenticated:', currentUser.email, 'Role:', currentUser.role);
     } catch (error) {
         console.error('Authentication check failed:', error);
@@ -85,7 +84,7 @@ function setupEventListeners() {
     if (messageForm) {
         messageForm.addEventListener('submit', handleMessageSubmit);
     }
-    
+
     // Message input character count
     if (messageInput) {
         messageInput.addEventListener('input', updateCharCount);
@@ -96,24 +95,24 @@ function setupEventListeners() {
             }
         });
     }
-    
+
     // Member search
     if (memberSearchInput) {
         memberSearchInput.addEventListener('input', handleMemberSearch);
     }
-    
+
     // Conversation info and leave buttons
     const conversationInfoBtn = document.getElementById('conversation-info-btn');
     const leaveConversationBtn = document.getElementById('leave-conversation-btn');
-    
+
     if (conversationInfoBtn) {
         conversationInfoBtn.addEventListener('click', showConversationInfo);
     }
-    
+
     if (leaveConversationBtn) {
         leaveConversationBtn.addEventListener('click', leaveConversation);
     }
-    
+
     // Logout
     if (logoutBtn) {
         logoutBtn.addEventListener('click', handleLogout);
@@ -125,19 +124,20 @@ async function loadAllMembers() {
         const response = await fetch(CONFIG.apiUrl('api/users'), {
             credentials: 'include'
         });
-        
+
         if (!response.ok) {
             throw new Error('Failed to load members');
         }
-        
-        allMembers = await response.json();
+
+        const data = await response.json();
+        allMembers = data.users || [];
         // Filter out current user and only show approved members
         allMembers = allMembers.filter(member => 
             member.id !== currentUser.id && member.status === 'approved'
         );
-        
+
         renderMembersList();
-        
+
     } catch (error) {
         console.error('Error loading members:', error);
         showMessage('Failed to load members.', 'error');
@@ -146,13 +146,13 @@ async function loadAllMembers() {
 
 function renderMembersList(filteredMembers = allMembers) {
     if (!membersList) return;
-    
+
     if (filteredMembers.length === 0) {
         membersList.innerHTML = '<div class="p-2 text-sm text-gray-500">No members found</div>';
         membersList.classList.add('hidden');
         return;
     }
-    
+
     const membersHtml = filteredMembers.slice(0, 10).map(member => `
         <div class="member-item p-2 hover:bg-gray-100 cursor-pointer border-b" data-member-id="${member.id}">
             <div class="flex items-center gap-3">
@@ -166,10 +166,10 @@ function renderMembersList(filteredMembers = allMembers) {
             </div>
         </div>
     `).join('');
-    
+
     membersList.innerHTML = membersHtml;
     membersList.classList.remove('hidden');
-    
+
     // Add click listeners to member items
     membersList.querySelectorAll('.member-item').forEach(item => {
         item.addEventListener('click', () => {
@@ -181,17 +181,17 @@ function renderMembersList(filteredMembers = allMembers) {
 
 function handleMemberSearch(e) {
     const searchTerm = e.target.value.toLowerCase().trim();
-    
+
     if (searchTerm === '') {
         membersList.classList.add('hidden');
         return;
     }
-    
+
     const filteredMembers = allMembers.filter(member => 
         member.full_name.toLowerCase().includes(searchTerm) ||
         member.email.toLowerCase().includes(searchTerm)
     );
-    
+
     renderMembersList(filteredMembers);
 }
 
@@ -200,18 +200,18 @@ async function startConversationWithMember(memberId) {
         // Hide member search results
         membersList.classList.add('hidden');
         memberSearchInput.value = '';
-        
+
         // Check if conversation already exists
         const existingConversation = conversations.find(conv => 
             conv.type === 'direct' && 
             conv.participants.some(p => p.id === memberId)
         );
-        
+
         if (existingConversation) {
             selectConversation(existingConversation);
             return;
         }
-        
+
         // Create new conversation
         const response = await fetch(CONFIG.apiUrl('api/messages/conversations'), {
             method: 'POST',
@@ -224,20 +224,20 @@ async function startConversationWithMember(memberId) {
                 participant_ids: [memberId]
             })
         });
-        
+
         if (!response.ok) {
             throw new Error('Failed to create conversation');
         }
-        
+
         const result = await response.json();
-        
+
         // Reload conversations and select the new one
         await loadConversations();
         const newConversation = conversations.find(c => c.id === result.conversation.id);
         if (newConversation) {
             selectConversation(newConversation);
         }
-        
+
     } catch (error) {
         console.error('Error starting conversation:', error);
         showMessage('Failed to start conversation.', 'error');
@@ -250,27 +250,27 @@ async function loadConversations() {
         document.getElementById('conversations-loading').classList.remove('hidden');
         conversationsList.classList.add('hidden');
         document.getElementById('no-conversations').classList.add('hidden');
-        
+
         const response = await fetch(CONFIG.apiUrl('api/messages/conversations'), {
             credentials: 'include'
         });
-        
+
         if (!response.ok) {
             throw new Error('Failed to load conversations');
         }
-        
+
         const data = await response.json();
         conversations = data.conversations || [];
-        
+
         // Hide loading state
         document.getElementById('conversations-loading').classList.add('hidden');
-        
+
         if (conversations.length === 0) {
             document.getElementById('no-conversations').classList.remove('hidden');
         } else {
             displayConversations();
         }
-        
+
     } catch (error) {
         console.error('Error loading conversations:', error);
         document.getElementById('conversations-loading').classList.add('hidden');
@@ -280,14 +280,14 @@ async function loadConversations() {
 
 function displayConversations() {
     if (!conversationsList) return;
-    
+
     conversationsList.classList.remove('hidden');
-    
+
     const conversationsHtml = conversations.map(conversation => {
         const otherParticipants = conversation.participants.filter(p => p.id !== currentUser.id);
         const displayName = conversation.title || otherParticipants.map(p => p.full_name).join(', ') || 'Unknown';
         const isSelected = currentConversation && currentConversation.id === conversation.id;
-        
+
         return `
             <div class="conversation-item p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${isSelected ? 'active' : ''}"
                  onclick="selectConversation(${JSON.stringify(conversation).replace(/"/g, '&quot;')})">
@@ -306,26 +306,26 @@ function displayConversations() {
             </div>
         `;
     }).join('');
-    
+
     conversationsList.innerHTML = conversationsHtml;
 }
 
 async function selectConversation(conversation) {
     currentConversation = conversation;
-    
+
     // Update UI
     document.getElementById('welcome-state').classList.add('hidden');
     document.getElementById('chat-container').classList.remove('hidden');
     displayConversations(); // Refresh to show selection
-    
+
     // Update chat header
     const otherParticipants = conversation.participants.filter(p => p.id !== currentUser.id);
     const displayName = conversation.title || otherParticipants.map(p => p.full_name).join(', ') || 'Unknown';
-    
+
     document.getElementById('chat-avatar').textContent = displayName.charAt(0).toUpperCase();
     document.getElementById('chat-title').textContent = displayName;
     document.getElementById('chat-subtitle').textContent = `${conversation.participants.length} participants`;
-    
+
     // Load messages for this conversation
     await loadMessages(conversation.id);
 }
@@ -335,24 +335,24 @@ async function loadMessages(conversationId) {
         // Show loading state
         document.getElementById('messages-loading').classList.remove('hidden');
         document.getElementById('messages-container').classList.add('hidden');
-        
+
         const response = await fetch(CONFIG.apiUrl(`api/messages/conversations/${conversationId}/messages`), {
             credentials: 'include'
         });
-        
+
         if (!response.ok) {
             throw new Error('Failed to load messages');
         }
-        
+
         const data = await response.json();
         messages = data.messages || [];
-        
+
         // Hide loading state
         document.getElementById('messages-loading').classList.add('hidden');
         document.getElementById('messages-container').classList.remove('hidden');
-        
+
         displayMessages();
-        
+
     } catch (error) {
         console.error('Error loading messages:', error);
         document.getElementById('messages-loading').classList.add('hidden');
@@ -362,7 +362,7 @@ async function loadMessages(conversationId) {
 
 function displayMessages() {
     if (!messagesContainer || !currentConversation) return;
-    
+
     if (messages.length === 0) {
         messagesContainer.innerHTML = `
             <div class="flex items-center justify-center h-full text-gray-500">
@@ -376,7 +376,7 @@ function displayMessages() {
         `;
         return;
     }
-    
+
     const messagesHtml = messages.map(message => {
         const isSent = message.sender_id === currentUser.id;
         return `
@@ -391,9 +391,9 @@ function displayMessages() {
             </div>
         `;
     }).join('');
-    
+
     messagesContainer.innerHTML = messagesHtml;
-    
+
     // Scroll to bottom
     setTimeout(() => {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -402,17 +402,17 @@ function displayMessages() {
 
 async function handleMessageSubmit(e) {
     e.preventDefault();
-    
+
     if (!currentConversation || !messageInput) return;
-    
+
     const content = messageInput.value.trim();
     if (!content) return;
-    
+
     // Disable send button
     if (sendButton) {
         sendButton.disabled = true;
     }
-    
+
     try {
         const response = await fetch(CONFIG.apiUrl(`api/messages/conversations/${currentConversation.id}/messages`), {
             method: 'POST',
@@ -422,20 +422,20 @@ async function handleMessageSubmit(e) {
             credentials: 'include',
             body: JSON.stringify({ content })
         });
-        
+
         if (!response.ok) {
             throw new Error('Failed to send message');
         }
-        
+
         messageInput.value = '';
         updateCharCount();
-        
+
         // Reload messages and conversations
         await Promise.all([
             loadMessages(currentConversation.id),
             loadConversations()
         ]);
-        
+
     } catch (error) {
         console.error('Error sending message:', error);
         showMessage('Failed to send message.', 'error');
@@ -452,7 +452,7 @@ function updateCharCount() {
     if (charCountEl && messageInput) {
         const count = messageInput.value.length;
         charCountEl.textContent = `${count}/1000`;
-        
+
         if (sendButton) {
             sendButton.disabled = count === 0 || count > 1000;
         }
@@ -461,10 +461,10 @@ function updateCharCount() {
 
 function showConversationInfo() {
     if (!currentConversation) return;
-    
+
     const modal = document.getElementById('conversation-info-modal');
     const content = document.getElementById('conversation-info-content');
-    
+
     if (modal && content) {
         const participants = currentConversation.participants.map(p => 
             `<div class="flex items-center gap-2 py-2">
@@ -474,7 +474,7 @@ function showConversationInfo() {
                 <span>${escapeHtml(p.full_name)} ${p.id === currentUser.id ? '(You)' : ''}</span>
             </div>`
         ).join('');
-        
+
         content.innerHTML = `
             <div class="space-y-4">
                 <div>
@@ -487,36 +487,36 @@ function showConversationInfo() {
                 </div>
             </div>
         `;
-        
+
         modal.classList.remove('hidden');
     }
 }
 
 async function leaveConversation() {
     if (!currentConversation) return;
-    
+
     if (!confirm('Are you sure you want to leave this conversation?')) {
         return;
     }
-    
+
     try {
         const response = await fetch(CONFIG.apiUrl(`api/messages/conversations/${currentConversation.id}`), {
             method: 'DELETE',
             credentials: 'include'
         });
-        
+
         if (!response.ok) {
             throw new Error('Failed to leave conversation');
         }
-        
+
         // Reset UI and reload conversations
         currentConversation = null;
         document.getElementById('chat-container').classList.add('hidden');
         document.getElementById('welcome-state').classList.remove('hidden');
-        
+
         await loadConversations();
         showMessage('Left conversation successfully.', 'success');
-        
+
     } catch (error) {
         console.error('Error leaving conversation:', error);
         showMessage('Failed to leave conversation.', 'error');
@@ -577,9 +577,9 @@ function showMessage(message, type = 'info', duration = 3000) {
         'bg-blue-600'
     }`;
     notification.textContent = message;
-    
+
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
         notification.remove();
     }, duration);

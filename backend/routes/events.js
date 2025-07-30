@@ -41,7 +41,7 @@ router.get('/', protect, async (req, res) => {
         const validSortColumns = ['date', 'title', 'capacity', 'created_at'];
         const validSortOrders = ['ASC', 'DESC'];
         const sortColumn = validSortColumns.includes(sortBy) ? sortBy : 'date';
-        const sortDirection = validSortOrders.includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'ASC';
+        const sortDirection = validSortOrders.includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'DESC';
         
         // Get total count for pagination
         const [countResult] = await db.query(
@@ -50,19 +50,21 @@ router.get('/', protect, async (req, res) => {
         );
         const totalEvents = countResult[0].total;
         
-        // Get events with registration count
+        // Get events with registration count and user registration status
         const [events] = await db.query(
             `SELECT 
                 e.*,
                 COUNT(v.id) as registered_count,
-                (CASE WHEN COUNT(v.id) >= e.capacity THEN true ELSE false END) as is_full
+                (CASE WHEN COUNT(v.id) >= e.capacity THEN true ELSE false END) as is_full,
+                (CASE WHEN uv.id IS NOT NULL THEN true ELSE false END) as is_user_registered
             FROM events e
             LEFT JOIN visits v ON e.id = v.event_id
+            LEFT JOIN visits uv ON e.id = uv.event_id AND uv.user_id = ?
             WHERE ${whereClause}
             GROUP BY e.id
             ORDER BY e.${sortColumn} ${sortDirection}
             LIMIT ? OFFSET ?`,
-            [...queryParams, parseInt(limit), offset]
+            [req.user.id, ...queryParams, parseInt(limit), offset]
         );
         
         res.json({

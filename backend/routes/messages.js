@@ -6,48 +6,30 @@ const { protect, admin } = require('../middleware/authMiddleware');
 // GET /api/messages/conversations - Get user's conversations
 router.get('/conversations', protect, async (req, res) => {
     try {
-        const [conversations] = await db.query(
-            `SELECT DISTINCT 
+        const [conversations] = await db.query(`
+            SELECT 
                 c.id,
-                c.title,
                 c.created_at,
-                c.updated_at
+                CASE 
+                    WHEN c.user1_id = ? THEN u2.full_name 
+                    ELSE u1.full_name 
+                END as other_user_name,
+                CASE 
+                    WHEN c.user1_id = ? THEN c.user2_id 
+                    ELSE c.user1_id 
+                END as other_user_id,
+                COALESCE(m.message, 'No messages yet') as last_message,
+                m.sent_at as last_message_time,
+                COALESCE((SELECT COUNT(*) FROM messages WHERE conversation_id = c.id AND sender_id != ? AND read_status = FALSE), 0) as unread_count
             FROM conversations c
-            JOIN conversation_participants cp ON c.id = cp.conversation_id
-            WHERE cp.user_id = ?
-            ORDER BY c.updated_at DESC`,
-            [req.user.id]
-        );
-
-        // Get participants for each conversation
-        for (let conversation of conversations) {
-            const [participants] = await db.query(
-                `SELECT 
-                    u.id,
-                    u.full_name,
-                    u.email
-                FROM users u
-                JOIN conversation_participants cp ON u.id = cp.user_id
-                WHERE cp.conversation_id = ?`,
-                [conversation.id]
-            );
-            conversation.participants = participants;
-
-            // Get last message
-            const [lastMessage] = await db.query(
-                `SELECT 
-                    m.content,
-                    m.created_at,
-                    u.full_name as sender_name
-                FROM messages m
-                JOIN users u ON m.sender_id = u.id
-                WHERE m.conversation_id = ?
-                ORDER BY m.created_at DESC
-                LIMIT 1`,
-                [conversation.id]
-            );
-            conversation.last_message = lastMessage[0] || null;
-        }
+            LEFT JOIN users u1 ON c.user1_id = u1.id
+            LEFT JOIN users u2 ON c.user2_id = u2.id
+            LEFT JOIN messages m ON c.id = m.conversation_id AND m.id = (
+                SELECT MAX(id) FROM messages WHERE conversation_id = c.id
+            )
+            WHERE (c.user1_id = ? OR c.user2_id = ?)
+            ORDER BY COALESCE(m.sent_at, c.created_at) DESC
+        `, [req.user.id, req.user.id, req.user.id, req.user.id, req.user.id]);
 
         res.json({ conversations });
     } catch (error) {
@@ -373,7 +355,7 @@ router.post('/conversations', protect, async (req, res) => {
 
         // Create conversation
         const conversationTitle = type === 'direct' ? null : (title || `Group with ${participant_ids.length + 1} members`);
-        
+
         const [result] = await db.query(
             'INSERT INTO conversations (title, type, created_by) VALUES (?, ?, ?)',
             [conversationTitle, type, userId]
@@ -384,7 +366,7 @@ router.post('/conversations', protect, async (req, res) => {
         // Add all participants including creator
         const allParticipants = [userId, ...participant_ids];
         const participantValues = allParticipants.map(id => [conversationId, id]);
-        
+
         await db.query(
             'INSERT INTO conversation_participants (conversation_id, user_id) VALUES ?',
             [participantValues]

@@ -6,7 +6,7 @@ let currentFilters = {
     search: '',
     status: 'all',
     sortBy: 'date',
-    sortOrder: 'ASC'
+    sortOrder: 'DESC'
 };
 let currentView = 'list';
 let currentUser = null;
@@ -428,15 +428,26 @@ function showEventModal(event) {
     modalActions.innerHTML = `
         ${canRegister ? `
             <button onclick="registerForEvent(${event.id})" 
-                    class="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 transition-colors">
-                Register
+                    class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                Attend Event
             </button>
         ` : ''}
         ${canUnregister ? `
             <button onclick="unregisterFromEvent(${event.id})" 
-                    class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-                Unregister
+                    class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+                Cancel Attendance
             </button>
+        ` : ''}
+        ${isPast && event.is_user_registered ? `
+            <span class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg font-medium">
+                You attended this event
+            </span>
         ` : ''}
         <button onclick="closeEventModal()" 
                 class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
@@ -459,7 +470,7 @@ async function registerForEvent(eventId) {
             throw new Error(error.message || 'Failed to register for event');
         }
         
-        showMessage('Successfully registered for event!', 'success');
+        showMessage('Successfully registered to attend this event!', 'success');
         closeEventModal();
         await loadEvents();
         
@@ -485,7 +496,7 @@ async function unregisterFromEvent(eventId) {
             throw new Error(error.message || 'Failed to unregister from event');
         }
         
-        showMessage('Successfully unregistered from event.', 'success');
+        showMessage('Successfully cancelled your attendance.', 'success');
         closeEventModal();
         await loadEvents();
         
@@ -733,7 +744,7 @@ function clearFilters() {
         search: '',
         status: 'all',
         sortBy: 'date',
-        sortOrder: 'ASC'
+        sortOrder: 'DESC'
     };
     currentPage = 1;
     

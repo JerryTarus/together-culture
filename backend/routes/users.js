@@ -70,6 +70,21 @@ router.get('/', protect, admin, async (req, res) => {
     }
 });
 
+// GET /api/users - Get all users (for messaging)
+router.get('/', protect, async (req, res) => {
+    try {
+        const [users] = await db.query(
+            'SELECT id, full_name, email, role FROM users WHERE id != ? ORDER BY full_name ASC',
+            [req.user.id]
+        );
+        
+        res.json({ users });
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        res.status(500).json({ message: 'Error fetching users' });
+    }
+});
+
 // GET /api/users/me - Get current user profile
 router.get('/me', protect, async (req, res) => {
     try {

@@ -315,6 +315,114 @@ router.put('/conversations/:id', protect, async (req, res) => {
     }
 });
 
+// POST /api/messages/conversations - Create new conversation
+router.post('/conversations', protect, async (req, res) => {
+    try {
+        const { title, type = 'direct', participant_ids = [] } = req.body;
+        const userId = req.user.id;
+
+        // Validate participants
+        if (!Array.isArray(participant_ids) || participant_ids.length === 0) {
+            return res.status(400).json({ 
+                message: 'At least one participant is required',
+                errors: { participant_ids: 'Participants are required' }
+            });
+        }
+
+        // For direct conversations, only allow one other participant
+        if (type === 'direct' && participant_ids.length !== 1) {
+            return res.status(400).json({ 
+                message: 'Direct conversations must have exactly one other participant',
+                errors: { participant_ids: 'Direct conversations require exactly one participant' }
+            });
+        }
+
+        // Check if direct conversation already exists
+        if (type === 'direct') {
+            const otherUserId = participant_ids[0];
+            const [existing] = await db.query(`
+                SELECT c.id 
+                FROM conversations c
+                JOIN conversation_participants cp1 ON c.id = cp1.conversation_id
+                JOIN conversation_participants cp2 ON c.id = cp2.conversation_id
+                WHERE c.type = 'direct'
+                AND cp1.user_id = ? AND cp2.user_id = ?
+                AND (SELECT COUNT(*) FROM conversation_participants WHERE conversation_id = c.id) = 2
+            `, [userId, otherUserId]);
+
+            if (existing.length > 0) {
+                return res.status(400).json({ 
+                    message: 'Direct conversation already exists',
+                    conversation_id: existing[0].id
+                });
+            }
+        }
+
+        // Validate that all participants exist and are approved
+        const [users] = await db.query(
+            `SELECT id FROM users WHERE id IN (${participant_ids.map(() => '?').join(',')}) AND status = 'approved'`,
+            participant_ids
+        );
+
+        if (users.length !== participant_ids.length) {
+            return res.status(400).json({ 
+                message: 'Some participants not found or not approved',
+                errors: { participant_ids: 'Invalid or unapproved participants' }
+            });
+        }
+
+        // Create conversation
+        const conversationTitle = type === 'direct' ? null : (title || `Group with ${participant_ids.length + 1} members`);
+        
+        const [result] = await db.query(
+            'INSERT INTO conversations (title, type, created_by) VALUES (?, ?, ?)',
+            [conversationTitle, type, userId]
+        );
+
+        const conversationId = result.insertId;
+
+        // Add all participants including creator
+        const allParticipants = [userId, ...participant_ids];
+        const participantValues = allParticipants.map(id => [conversationId, id]);
+        
+        await db.query(
+            'INSERT INTO conversation_participants (conversation_id, user_id) VALUES ?',
+            [participantValues]
+        );
+
+        // Get the created conversation with participants
+        const [conversation] = await db.query(`
+            SELECT 
+                c.*,
+                JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'id', u.id,
+                        'full_name', u.full_name,
+                        'email', u.email
+                    )
+                ) as participants
+            FROM conversations c
+            JOIN conversation_participants cp ON c.id = cp.conversation_id
+            JOIN users u ON cp.user_id = u.id
+            WHERE c.id = ?
+            GROUP BY c.id
+        `, [conversationId]);
+
+        const conv = conversation[0];
+        conv.participants = JSON.parse(conv.participants);
+
+        console.log(`✅ Conversation created: ${conversationId} by ${req.user.email}`);
+
+        res.status(201).json({
+            message: 'Conversation created successfully',
+            conversation: conv
+        });
+    } catch (error) {
+        console.error('Error creating conversation:', error);
+        res.status(500).json({ message: 'Error creating conversation' });
+    }
+});
+
 // DELETE /api/messages/conversations/:id - Leave/delete conversation
 router.delete('/conversations/:id', protect, async (req, res) => {
     try {

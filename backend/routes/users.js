@@ -794,4 +794,58 @@ router.delete('/:id', protect, admin, async (req, res) => {
     }
 });
 
+// GET /api/users/me/activity - Get current user's recent activity
+router.get('/me/activity', protect, async (req, res) => {
+    try {
+        const activities = [];
+        
+        // Get recent events attended
+        const [events] = await db.query(`
+            SELECT 
+                'event' as type,
+                CONCAT('Attended event: ', e.title) as description,
+                v.attended_at as created_at
+            FROM visits v
+            JOIN events e ON v.event_id = e.id
+            WHERE v.user_id = ?
+            ORDER BY v.attended_at DESC
+            LIMIT 5
+        `, [req.user.id]);
+        
+        // Get recent messages sent
+        const [messages] = await db.query(`
+            SELECT 
+                'message' as type,
+                'Sent a message in conversation' as description,
+                m.created_at
+            FROM messages m
+            WHERE m.sender_id = ?
+            ORDER BY m.created_at DESC
+            LIMIT 5
+        `, [req.user.id]);
+        
+        // Get recent resource downloads (if tracking exists)
+        const [resources] = await db.query(`
+            SELECT 
+                'resource' as type,
+                CONCAT('Downloaded resource: ', r.filename) as description,
+                r.created_at
+            FROM resources r
+            WHERE r.uploaded_by = ?
+            ORDER BY r.created_at DESC
+            LIMIT 3
+        `, [req.user.id]);
+        
+        // Combine and sort activities
+        const allActivities = [...events, ...messages, ...resources]
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+            .slice(0, 10);
+        
+        res.json(allActivities);
+    } catch (error) {
+        console.error('Error fetching user activity:', error);
+        res.status(500).json({ message: 'Error fetching user activity' });
+    }
+});
+
 module.exports = router;

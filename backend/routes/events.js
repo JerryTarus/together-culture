@@ -478,4 +478,44 @@ router.get('/attendance-stats', protect, admin, async (req, res) => {
     }
 });
 
+// GET /api/events/attended - Get events attended by current user
+router.get('/attended', protect, async (req, res) => {
+    try {
+        const [events] = await db.query(`
+            SELECT 
+                e.*,
+                v.attended_at
+            FROM events e
+            JOIN visits v ON e.id = v.event_id
+            WHERE v.user_id = ?
+            ORDER BY v.attended_at DESC
+        `, [req.user.id]);
+
+        res.json({ count: events.length, events });
+    } catch (error) {
+        console.error('Error fetching attended events:', error);
+        res.status(500).json({ message: 'Error fetching attended events' });
+    }
+});
+
+// GET /api/events/upcoming - Get upcoming events
+router.get('/upcoming', protect, async (req, res) => {
+    try {
+        const [events] = await db.query(`
+            SELECT 
+                e.*,
+                (SELECT COUNT(*) FROM visits WHERE event_id = e.id) as attendance_count
+            FROM events e
+            WHERE e.event_date >= CURDATE()
+            ORDER BY e.event_date ASC
+            LIMIT 10
+        `);
+
+        res.json(events);
+    } catch (error) {
+        console.error('Error fetching upcoming events:', error);
+        res.status(500).json({ message: 'Error fetching upcoming events' });
+    }
+});
+
 module.exports = router;

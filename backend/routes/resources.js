@@ -529,4 +529,22 @@ router.get('/stats', protect, admin, async (req, res) => {
     }
 });
 
+// GET /api/resources/count - Get resources count for current user
+router.get('/count', protect, async (req, res) => {
+    try {
+        const [result] = await db.query(`
+            SELECT COUNT(*) as count
+            FROM resources r
+            WHERE r.access_level = 'public' 
+            OR (r.access_level = 'members' AND ? IS NOT NULL)
+            OR (r.access_level = 'admin' AND (SELECT role FROM users WHERE id = ?) = 'admin')
+        `, [req.user.id, req.user.id]);
+
+        res.json({ count: result[0].count });
+    } catch (error) {
+        console.error('Error fetching resources count:', error);
+        res.status(500).json({ message: 'Error fetching resources count' });
+    }
+});
+
 module.exports = router;

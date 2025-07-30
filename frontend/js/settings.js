@@ -74,6 +74,11 @@ async function checkAuthentication() {
         if (userNameSpan) {
             userNameSpan.textContent = currentUser.full_name;
         }
+        // Update dashboard link based on role
+        const dashboardLink = document.getElementById('dashboard-link');
+        if (dashboardLink) {
+            dashboardLink.href = currentUser.role === 'admin' ? '/admin_dashboard.html' : '/member_dashboard.html';
+        }
         
         console.log('User authenticated:', currentUser.email, 'Role:', currentUser.role);
     } catch (error) {

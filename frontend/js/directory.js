@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td class="p-4 capitalize">${member.role}</td>
                     <td class="p-4">${joinedDate}</td>
                     <td class="p-4 space-x-2">
-                        <button class="edit-btn text-blue-600 hover:underline" data-id="${member.id}">Edit</button>
+                        ${currentUser && currentUser.role === 'admin' ? `<button class="view-btn text-blue-600 hover:underline" data-id="${member.id}">View</button>` : `<button class="edit-btn text-blue-600 hover:underline" data-id="${member.id}">Edit</button>`}
                         ${member.id !== currentUser.id ? `<button class="delete-btn text-red-600 hover:underline" data-id="${member.id}">Delete</button>` : ''}
                         ${member.role === 'member' ? `<button class="activity-btn text-green-600 hover:underline" data-id="${member.id}" data-name="${member.full_name}">Activity</button>` : ''}
                     </td>
@@ -147,14 +147,46 @@ document.addEventListener('DOMContentLoaded', () => {
                 const res = await fetch(CONFIG.apiUrl(`api/users/${userId}`));
                 if (!res.ok) throw new Error('Could not fetch user details.');
                 const user = await res.json();
-                
-                // Populate and show the modal
+                // Populate and show the modal for editing
                 document.getElementById('edit-user-id').value = user.id;
                 document.getElementById('edit-full-name').value = user.full_name;
                 document.getElementById('edit-email').value = user.email;
                 document.getElementById('edit-role').value = user.role;
                 document.getElementById('edit-bio').value = user.bio || '';
                 document.getElementById('edit-skills').value = user.skills || '';
+                // Enable all fields for editing
+                document.getElementById('edit-full-name').disabled = false;
+                document.getElementById('edit-email').disabled = false;
+                document.getElementById('edit-role').disabled = false;
+                document.getElementById('edit-bio').disabled = false;
+                document.getElementById('edit-skills').disabled = false;
+                document.getElementById('save-edit-btn').classList.remove('hidden');
+                editModal.classList.remove('hidden');
+            } catch (error) {
+                 alert(`Error: ${error.message}`);
+            }
+        }
+
+        // Handle VIEW button click for admin
+        if (target.classList.contains('view-btn')) {
+            try {
+                const res = await fetch(CONFIG.apiUrl(`api/users/${userId}`));
+                if (!res.ok) throw new Error('Could not fetch user details.');
+                const user = await res.json();
+                // Populate and show the modal for viewing (read-only)
+                document.getElementById('edit-user-id').value = user.id;
+                document.getElementById('edit-full-name').value = user.full_name;
+                document.getElementById('edit-email').value = user.email;
+                document.getElementById('edit-role').value = user.role;
+                document.getElementById('edit-bio').value = user.bio || '';
+                document.getElementById('edit-skills').value = user.skills || '';
+                // Disable all fields for view-only
+                document.getElementById('edit-full-name').disabled = true;
+                document.getElementById('edit-email').disabled = true;
+                document.getElementById('edit-role').disabled = true;
+                document.getElementById('edit-bio').disabled = true;
+                document.getElementById('edit-skills').disabled = true;
+                document.getElementById('save-edit-btn').classList.add('hidden');
                 editModal.classList.remove('hidden');
             } catch (error) {
                  alert(`Error: ${error.message}`);

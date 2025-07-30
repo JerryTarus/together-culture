@@ -24,6 +24,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         document.getElementById('user-name').textContent = user.full_name;
+        // Set user name in header (new nav)
+        const userNameHeader = document.getElementById('user-name-header');
+        if (userNameHeader) userNameHeader.textContent = user.full_name;
+        // Attach logout to header button
+        const logoutHeaderBtn = document.getElementById('logout-button-header');
+        if (logoutHeaderBtn) {
+            logoutHeaderBtn.addEventListener('click', async () => {
+                try {
+                    await fetch(CONFIG.apiUrl('api/auth/logout'), { method: 'POST' });
+                    window.location.href = './login.html';
+                } catch (error) {
+                    console.error('Logout failed:', error);
+                }
+            });
+        }
 
     } catch (error) {
         console.error('Auth check failed:', error);

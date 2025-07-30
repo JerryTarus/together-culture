@@ -221,47 +221,71 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- 4. LOAD RECENT ACTIVITY ---
     async function loadRecentActivity() {
-        const container = document.getElementById('recent-activity');
-        container.innerHTML = '<div class="text-gray-500">Loading recent activity...</div>';
-
         try {
-            const res = await fetch(CONFIG.apiUrl('api/admin/recent-activity'));
-            if (!res.ok) throw new Error('Failed to fetch recent activity');
-
-            const activitiesObj = await res.json();
-            const activities = activitiesObj.recent_activity || [];
-
-            if (!Array.isArray(activities) || activities.length === 0) {
-                container.innerHTML = '<div class="text-gray-500">No recent activity to display.</div>';
-                return;
-            }
-
-            let activitiesHtml = '';
-            activities.slice(0, 5).forEach(activity => {
-                const activityDate = new Date(activity.created_at).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-
-                activitiesHtml += `
-                    <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                        <div class="w-2 h-2 bg-brand-primary rounded-full"></div>
-                        <div class="flex-1">
-                            <p class="text-sm text-gray-900">${activity.description}</p>
-                            <p class="text-xs text-gray-500">${activityDate}</p>
-                        </div>
-                    </div>
-                `;
+            const response = await fetch(CONFIG.apiUrl('api/admin/recent-activity'), {
+                credentials: 'include'
             });
 
-            container.innerHTML = activitiesHtml;
+            if (!response.ok) {
+                throw new Error('Failed to load recent activity');
+            }
+
+            const activities = await response.json();
+            displayRecentActivity(activities);
 
         } catch (error) {
             console.error('Error loading recent activity:', error);
-            container.innerHTML = '<div class="text-gray-500">Could not load recent activity.</div>';
+            const container = document.getElementById('recent-activity');
+            if (container) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">Unable to load recent activity</p>';
+            }
         }
+    }
+
+    function displayRecentActivity(activities) {
+        const container = document.getElementById('recent-activity');
+        if (!container) return;
+
+        if (activities.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 text-sm">No recent activity</p>';
+            return;
+        }
+
+        container.innerHTML = activities.map(activity => `
+        <div class="flex items-start space-x-3 py-2">
+            <div class="flex-shrink-0 w-2 h-2 bg-blue-400 rounded-full mt-2"></div>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm text-gray-900">${escapeHtml(activity.description)}</p>
+                <p class="text-xs text-gray-500">${formatTimeAgo(activity.created_at)}</p>
+            </div>
+        </div>
+    `).join('');
+    }
+
+    function formatTimeAgo(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diff = now - date;
+
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(diff / 3600000);
+        const days = Math.floor(diff / 86400000);
+
+        if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+        if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+        if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+        return 'Just now';
+    }
+
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
     }
 
     // --- 5. LOAD RECENT MEMBERS ---

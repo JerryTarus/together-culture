@@ -199,6 +199,46 @@ router.post('/login', async (req, res) => {
         });
     }
 });
+// Get current user
+router.get('/me', async (req, res) => {
+    try {
+        const token = req.cookies.token;
+        
+        if (!token) {
+            return res.status(401).json({ message: 'Not authorized, no token' });
+        }
+
+        if (!process.env.JWT_SECRET) {
+            return res.status(500).json({ message: 'Server configuration error' });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        
+        const [rows] = await db.query('SELECT id, full_name, email, role, status FROM users WHERE id = ?', [decoded.id]);
+        
+        if (rows.length === 0) {
+            return res.status(401).json({ message: 'User not found' });
+        }
+        
+        const user = rows[0];
+        
+        // Check if user is approved (only for non-admin users)
+        if (user.role !== 'admin' && user.status !== 'approved') {
+            return res.status(403).json({ 
+                message: user.status === 'pending' 
+                    ? 'Your account is pending admin approval.'
+                    : 'Your account has been rejected or disabled.',
+                errors: { status: user.status }
+            });
+        }
+        
+        res.json(user);
+    } catch (error) {
+        console.error('Auth check error:', error.message);
+        res.status(401).json({ message: 'Not authorized, token failed' });
+    }
+});
+
 // Logout user
 router.post('/logout', (req, res) => {
     try {

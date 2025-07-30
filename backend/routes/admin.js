@@ -2,6 +2,48 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
+
+// Get recent activity
+router.get('/recent-activity', async (req, res) => {
+    try {
+        const [activities] = await db.query(`
+            SELECT 
+                'User Registration' as type,
+                CONCAT(full_name, ' registered for an account') as description,
+                created_at
+            FROM users 
+            WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            
+            UNION ALL
+            
+            SELECT 
+                'Event Created' as type,
+                CONCAT('Event "', title, '" was created') as description,
+                created_at
+            FROM events 
+            WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            
+            UNION ALL
+            
+            SELECT 
+                'Message Sent' as type,
+                CONCAT('New message sent in system') as description,
+                sent_at as created_at
+            FROM messages 
+            WHERE sent_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            
+            ORDER BY created_at DESC 
+            LIMIT 10
+        `);
+
+        res.json(activities);
+    } catch (error) {
+        console.error('Recent activity error:', error);
+        res.status(500).json({ message: 'Failed to load recent activity' });
+    }
+});
+
+module.exports = router;
 const { protect, admin } = require('../middleware/authMiddleware');
 
 // GET /api/admin/stats - Get dashboard statistics

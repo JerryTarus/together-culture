@@ -1,261 +1,267 @@
 
-# Together Culture CRM
+# Together Culture - Community CRM Platform
 
-A comprehensive Customer Relationship Management system built for the Together Culture community, featuring member management, event coordination, messaging, and resource sharing.
+A comprehensive Community Relationship Management (CRM) platform designed to strengthen community connections through events, messaging, resource sharing, and member management.
 
-## 🚀 Features
+## 🌟 Features
 
-### ✅ Complete Features
+### ✅ Fully Implemented
 - **User Authentication & Authorization**
-  - Secure login/logout with JWT tokens
-  - Role-based access (Admin/Member)
-  - Account approval workflow
+  - Secure login/registration with JWT tokens
+  - Role-based access control (Admin/Member)
+  - User approval workflow
+  - Password hashing with bcrypt
 
 - **Admin Dashboard**
-  - Real-time analytics and statistics
-  - User management and approval
-  - Event creation and management
-  - System-wide oversight
+  - User management (approve/reject/view members)
+  - System analytics and statistics
+  - Recent activity monitoring
+  - Comprehensive user overview
 
 - **Member Dashboard**
-  - Personal activity overview
-  - Quick access to features
-  - Status tracking and notifications
+  - Personalized member experience
+  - Profile management
+  - Quick access to platform features
 
 - **Events Management**
-  - Create, edit, and delete events
-  - RSVP functionality (Attending, Maybe, Can't Attend)
+  - Create, view, and manage events
+  - RSVP functionality
   - Event capacity tracking
-  - Upcoming events highlighting
-  - Past events history
+  - Admin event oversight
 
 - **Messaging System**
-  - Private conversations between members
-  - Real-time message interface
-  - Member directory for new conversations
+  - Real-time member-to-member communication
+  - Conversation management
+  - Message persistence
+  - User-friendly chat interface
 
-- **User Profile Management**
-  - Edit personal information
-  - Update notifications
-  - Account settings
+- **Resource Library**
+  - File upload/download functionality
+  - Resource categorization
+  - Admin resource management
+  - Secure file handling
 
-### 🔄 Additional Features
-- **Resource Management** (Framework ready)
-- **Reporting System** (Basic structure)
-- **Responsive Design** (Mobile-friendly)
+- **Settings & Profile Management**
+  - User profile updates
+  - Password changes with feedback
+  - Account preferences
 
-## 🛠️ Technology Stack
+### 🔧 Technical Features
+- **Security**: JWT authentication, secure cookies, password hashing
+- **Database**: MySQL with proper migrations
+- **Frontend**: Responsive design with Tailwind CSS
+- **Backend**: Express.js RESTful API
+- **File Handling**: Multer for secure file uploads
 
-- **Backend:** Node.js, Express.js
-- **Database:** MySQL
-- **Frontend:** HTML5, CSS3, JavaScript (ES6+)
-- **Styling:** Tailwind CSS
-- **Authentication:** JWT with HTTP-only cookies
-
-## 📦 Installation & Setup
+## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js (v14 or higher)
-- MySQL Server
-- Git
+- MySQL (v8.0 or higher)
+- npm or yarn
 
-### 1. Clone the Repository
-```bash
-git clone [repository-url]
-cd together-culture-crm
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd together-culture-crm
+   ```
+
+2. **Install dependencies**
+   ```bash
+   # Install backend dependencies
+   cd backend
+   npm install
+   
+   # Install frontend dependencies (if needed)
+   cd ../frontend
+   npm install
+   ```
+
+3. **Database Setup**
+   ```bash
+   # Create MySQL database
+   mysql -u root -p
+   CREATE DATABASE together_culture;
+   
+   # Run database setup
+   cd backend
+   node setup-database.js
+   ```
+
+4. **Environment Configuration**
+   ```bash
+   # Create .env file in backend directory
+   cd backend
+   cp .env.example .env
+   # Edit .env with your database credentials
+   ```
+
+5. **Start the application**
+   ```bash
+   cd backend
+   npm start
+   ```
+
+6. **Access the application**
+   - Open your browser to `http://localhost:5000`
+   - Use the default admin credentials:
+     - Email: `admin@togetherculture.com`
+     - Password: `admin123`
+
+## 🏗️ Architecture
+
+### Backend Structure
+```
+backend/
+├── config/          # Database configuration
+├── middleware/      # Authentication middleware
+├── routes/          # API endpoints
+├── migrations/      # Database migrations
+├── uploads/         # File storage
+└── server.js        # Main server file
 ```
 
-### 2. Backend Setup
-```bash
-cd backend
-npm install
+### Frontend Structure
+```
+frontend/
+├── css/            # Stylesheets
+├── js/             # JavaScript modules
+├── *.html          # Page templates
+└── favicon.ico     # Site icon
 ```
 
-### 3. Environment Configuration
-Create a `.env` file in the `backend` directory:
-```env
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=your_mysql_password
-DB_NAME=together_culture
-JWT_SECRET=your_super_secret_key_here_change_in_production_2025
-NODE_ENV=development
-```
+## 🔐 Default Users
 
-### 4. Database Setup
-```bash
-# Create database
-mysql -u root -p
-CREATE DATABASE together_culture;
-USE together_culture;
+The system comes with pre-configured test users:
 
-# Run migrations
-mysql -u root -p together_culture < migrations/schema.sql
-mysql -u root -p together_culture < migrations/2025_07_29_add_user_status_event_capacity.sql
-mysql -u root -p together_culture < migrations/2025_07_28_add_conversations.sql
-mysql -u root -p together_culture < migrations/2025_07_30_add_event_rsvps.sql
-mysql -u root -p together_culture < migrations/2025_07_29_approve_admin.sql
+**Admin User:**
+- Email: `admin@togetherculture.com`
+- Password: `admin123`
+- Status: Active
 
-# Or use the setup script
-node setup-database.js
-```
+**Test Members:**
+- Sarah Johnson: `sarah.johnson@example.com` / `password123` (Approved)
+- David Thompson: `david.thompson@example.com` / `password123` (Pending)
+- James Wilson: `james.wilson@example.com` / `password123` (Rejected)
 
-### 5. Start the Application
-```bash
-npm start
-```
+## 📊 Database Schema
 
-The application will be available at `http://localhost:5000`
+- **users**: User accounts and profiles
+- **events**: Community events and activities
+- **event_rsvps**: Event registration tracking
+- **messages**: Inter-member communications
+- **conversations**: Message threading
+- **resources**: File and document library
 
-## 🔑 Default Login Credentials
-
-### Admin Account
-- **Email:** admin@togetherculture.com
-- **Password:** admin123
-- **Access:** Full administrative privileges
-
-### Sample Member Accounts
-- **Email:** sarah.johnson@example.com
-- **Password:** password123
-- **Status:** Approved
-
-- **Email:** david.thompson@example.com
-- **Password:** password123
-- **Status:** Pending
-
-## 📱 Application Structure
-
-### User Roles & Access
-
-**Admin Users:**
-- Full dashboard with analytics
-- User management and approval
-- Event creation and management
-- Message all members
-- System administration
-
-**Member Users:**
-- Personal dashboard
-- Event browsing and RSVP
-- Messaging with other members
-- Profile management
-- Resource access (when approved)
-
-### Page Navigation
-
-- **Homepage:** `/` - Public landing page
-- **Login:** `/login.html` - Authentication
-- **Register:** `/register.html` - New user registration
-- **Admin Dashboard:** `/admin_dashboard.html` - Admin overview
-- **Member Dashboard:** `/member_dashboard.html` - Member overview
-- **Events:** `/events.html` - Event management
-- **Messages:** `/messages.html` - Communication
-- **Resources:** `/resources.html` - File sharing
-- **Settings:** `/settings.html` - Profile management
-
-## 🗄️ Database Schema
-
-### Core Tables
-- `users` - User accounts and profiles
-- `events` - Event information
-- `event_rsvps` - Event attendance tracking
-- `conversations` - Message threads
-- `messages` - Individual messages
-- `resources` - Shared files and documents
-
-## 🔧 API Endpoints
+## 🛠️ API Endpoints
 
 ### Authentication
-- `POST /api/auth/login` - User login
 - `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
 - `POST /api/auth/logout` - User logout
+- `GET /api/auth/me` - Get current user
+
+### Admin
+- `GET /api/admin/users` - List all users
+- `PUT /api/admin/users/:id/status` - Update user status
+- `GET /api/admin/stats` - System statistics
+- `GET /api/admin/recent-activity` - Recent system activity
 
 ### Events
-- `GET /api/events` - List all events
-- `POST /api/events` - Create new event (Admin)
+- `GET /api/events` - List events
+- `POST /api/events` - Create event (Admin)
 - `PUT /api/events/:id` - Update event (Admin)
-- `DELETE /api/events/:id` - Delete event (Admin)
 - `POST /api/events/:id/rsvp` - RSVP to event
 
 ### Messages
-- `GET /api/messages/conversations` - User conversations
-- `GET /api/messages/conversation/:id` - Conversation messages
+- `GET /api/messages` - Get conversations
 - `POST /api/messages` - Send message
+- `GET /api/messages/conversation/:userId` - Get conversation with user
 
-### Users
-- `GET /api/users/members` - List members
-- `PUT /api/users/profile` - Update profile
-- `POST /api/admin/users/:id/approve` - Approve user (Admin)
+### Resources
+- `GET /api/resources` - List resources
+- `POST /api/resources/upload` - Upload resource (Admin)
+- `GET /api/resources/:id/download` - Download resource
+- `DELETE /api/resources/:id` - Delete resource (Admin)
 
-## 🎨 Design System
+## 🔒 Security Features
 
-### Color Palette
-- **Primary:** #4F46E5 (Indigo)
-- **Secondary:** #06B6D4 (Cyan)
-- **Accent:** #F59E0B (Amber)
-- **Dark:** #1F2937 (Gray)
-- **Background:** #FEF7ED (Warm beige)
+- JWT-based authentication
+- Secure HTTP-only cookies
+- Password hashing with bcrypt
+- Role-based access control
+- SQL injection prevention
+- File upload validation
+- CORS protection
 
-### UI Components
-- Consistent button styling
-- Card-based layouts
-- Responsive grid systems
-- Loading states and animations
-- Notification system
+## 🎨 UI/UX Features
 
-## 🚀 Deployment
+- Responsive design for all devices
+- Modern, clean interface
+- Interactive animations
+- Toast notifications
+- Loading states
+- Error handling
+- Accessibility considerations
 
-This application is designed to run on Replit with the following configuration:
+## 📱 Browser Support
 
-```bash
-# Run command
-cd backend && npm start
-```
-
-The server binds to `0.0.0.0:5000` for public access.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+- Chrome (recommended)
+- Firefox
+- Safari
+- Edge
 
 ## 🐛 Troubleshooting
 
 ### Common Issues
 
-1. **Database Connection Error**
-   - Verify MySQL is running
+1. **Database Connection Failed**
+   - Ensure MySQL is running
    - Check database credentials in `.env`
-   - Ensure database exists
+   - Verify database exists
 
 2. **Login Issues**
    - Clear browser cookies
-   - Check user approval status
+   - Check user status (must be approved)
    - Verify credentials
 
-3. **RSVP Not Working**
-   - Ensure `event_rsvps` table exists
-   - Check user authentication
-   - Verify event exists
+3. **File Upload Issues**
+   - Check file size limits
+   - Ensure upload directory exists
+   - Verify file permissions
 
-### Debug Mode
-Set `NODE_ENV=development` in `.env` for detailed logging.
+### Development
+
+```bash
+# View logs
+cd backend
+npm run dev
+
+# Database reset
+node setup-database.js
+
+# Test login functionality
+node test-application.js
+```
+
+## 🚀 Deployment
+
+The application is designed to run on Replit and can be easily deployed:
+
+1. Fork this repository to your Replit workspace
+2. Configure environment variables in Replit Secrets
+3. Run the application using the provided run configuration
 
 ## 📞 Support
 
-For technical issues:
-1. Check the browser console for errors
-2. Review server logs
-3. Verify database connectivity
-4. Ensure all dependencies are installed
+For technical support or feature requests, please contact the development team or create an issue in the repository.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
 
-**Together Culture CRM** - Building stronger communities through better connections.
+**Together Culture CRM** - Building stronger communities through technology.

@@ -1,4 +1,3 @@
-
 // frontend/js/messages.js
 
 let currentUser = null;
@@ -329,7 +328,7 @@ async function sendMessage() {
             },
             credentials: 'include',
             body: JSON.stringify({
-                receiver_id: receiverId,
+                receiver_id: currentConversation.other_user.id,
                 content: content
             })
         });
@@ -338,14 +337,34 @@ async function sendMessage() {
             throw new Error('Failed to send message');
         }
 
+        const result = await response.json();
+
         // Clear input
         messageInput.value = '';
 
-        // Reload messages
-        await loadMessages(receiverId);
+        // Add message to UI immediately
+        const message = {
+            id: result.id || Date.now(),
+            content: content,
+            sender_id: currentUser.id,
+            receiver_id: currentConversation.other_user.id,
+            sent_at: new Date().toISOString(),
+            sender_name: currentUser.full_name
+        };
 
-        // Reload conversations to update last message
+        // Add to current conversation messages
+        if (!currentConversation.messages) {
+            currentConversation.messages = [];
+        }
+        currentConversation.messages.push(message);
+
+        addMessageToChat(message);
+
+        // Update conversations list to show latest message
         await loadConversations();
+
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
 
     } catch (error) {
         console.error('Error sending message:', error);

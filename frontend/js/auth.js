@@ -137,19 +137,18 @@ async function handleLogin(e) {
         // Use setTimeout to allow the message to be seen briefly before redirecting
         setTimeout(() => {
             // Determine the redirect URL based on user role
-            let redirectUrl = '/'; // Default fallback
+            let redirectUrl = '/member_dashboard.html'; // Default for members
 
             if (data.user && data.user.role === 'admin') {
                 console.log("Redirecting admin to admin dashboard...");
-                redirectUrl = '/admin_dashboard.html'; // Use absolute path
-            } else if (data.user) { // Assuming default redirect for other roles (like 'member')
+                redirectUrl = '/admin_dashboard.html';
+            } else if (data.user) {
                 console.log("Redirecting user to member dashboard...");
-                redirectUrl = '/member_dashboard.html'; // Use absolute path
+                redirectUrl = '/member_dashboard.html';
             } else {
                 // Safety check in case data.user is missing unexpectedly
                 console.error("Unexpected response structure, missing user data:", data);
-                // Even with unexpected data, try a default redirect to prevent getting stuck
-                // You might want to show a persistent error message here instead
+                redirectUrl = '/member_dashboard.html'; // Default fallback
             }
 
             console.log('Performing redirect to:', redirectUrl);
@@ -158,22 +157,6 @@ async function handleLogin(e) {
         }, 1600); // Redirect slightly after the message appears (1.6 seconds)
         // --- CRITICAL FIX: REDIRECT ENDS ---
 
-        // --- ROLE-BASED REDIRECT LOGIC ---
-        // Redirect user based on their role
-        if (data.user && data.user.role === 'admin') {
-            setTimeout(() => {
-                window.location.href = '/admin_dashboard.html';
-            }, 1600);
-        } else {
-            setTimeout(() => {
-                window.location.href = '/member_dashboard.html';
-            }, 1600);
-        }
-        // --- END ROLE-BASED REDIRECT LOGIC ---
-
-        // IMPORTANT: Do not put any more code here that relies on the page state,
-        // as the redirect initiated by setTimeout will take over.
-        // The return statement is generally safe but often redundant after a redirect setup.
         return;
 
     } catch (error) {

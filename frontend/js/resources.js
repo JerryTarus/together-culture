@@ -1,5 +1,130 @@
 // frontend/js/resources.js
 
+let currentUser = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('Resources page loaded');
+
+    // Check authentication
+    await checkAuthentication();
+
+    // Load resources
+    await loadResources();
+
+    // Setup event listeners
+    setupEventListeners();
+});
+
+async function checkAuthentication() {
+    try {
+        const response = await fetch(CONFIG.apiUrl('api/auth/me'), {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            window.location.href = '/login.html';
+            return;
+        }
+
+        currentUser = await response.json();
+        console.log('User authenticated:', currentUser.email);
+
+        // Update UI based on user role
+        updateUIForRole();
+
+    } catch (error) {
+        console.error('Authentication check failed:', error);
+        window.location.href = '/login.html';
+    }
+}
+
+function updateUIForRole() {
+    const uploadButton = document.getElementById('upload-btn');
+    const adminActions = document.querySelectorAll('.admin-only');
+
+    if (currentUser.role === 'admin') {
+        if (uploadButton) uploadButton.style.display = 'block';
+        adminActions.forEach(el => el.style.display = 'block');
+    } else {
+        if (uploadButton) uploadButton.style.display = 'none';
+        adminActions.forEach(el => el.style.display = 'none');
+    }
+}
+
+async function loadResources() {
+    try {
+        const response = await fetch(CONFIG.apiUrl('api/resources'), {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to load resources');
+        }
+
+        const resources = await response.json();
+        displayResources(resources);
+
+    } catch (error) {
+        console.error('Error loading resources:', error);
+        showMessage('Failed to load resources', 'error');
+    }
+}
+
+function displayResources(resources) {
+    const container = document.getElementById('resources-container');
+    if (!container) return;
+
+    if (resources.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-12">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No resources</h3>
+                <p class="mt-1 text-sm text-gray-500">Get started by uploading a resource.</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = resources.map(resource => `
+        <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
+            <div class="flex items-start justify-between">
+                <div class="flex-1">
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">${escapeHtml(resource.title)}</h3>
+                    <p class="text-gray-600 text-sm mb-4">${escapeHtml(resource.description || 'No description available')}</p>
+                    <div class="flex items-center text-sm text-gray-500 space-x-4">
+                        <span>Type: ${escapeHtml(resource.type)}</span>
+                        <span>•</span>
+                        <span>Uploaded: ${new Date(resource.created_at).toLocaleDateString()}</span>
+                        <span>•</span>
+                        <span>By: ${escapeHtml(resource.uploaded_by_name)}</span>
+                    </div>
+                </div>
+                <div class="flex flex-col space-y-2 ml-4">
+                    <a href="${CONFIG.apiUrl('api/resources/' + resource.id + '/download')}" 
+                       class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Download
+                    </a>
+                    ${currentUser.role === 'admin' ? `
+                        <button onclick="deleteResource(${resource.id})" 
+                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                            Delete
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
 // Global state
 let currentPage = 1;
 let currentFilters = {
@@ -9,7 +134,6 @@ let currentFilters = {
     sortBy: 'created_at',
     sortOrder: 'DESC'
 };
-let currentUser = null;
 let currentResources = [];
 
 // DOM Elements
@@ -17,23 +141,6 @@ let resourcesContainer, resourcesLoading, noResourcesDiv, paginationDiv;
 let searchInput, categoryFilter, typeFilter, sortFilter;
 let uploadModal, resourceModal, uploadForm;
 let userNameSpan, logoutBtn;
-
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('Resources page loaded');
-
-    // Initialize DOM elements
-    initializeDOMElements();
-
-    // Check authentication
-    await checkAuthentication();
-
-    // Setup event listeners
-    setupEventListeners();
-
-    // Load initial data
-    await loadResources();
-});
 
 function initializeDOMElements() {
     // Main containers
@@ -58,40 +165,33 @@ function initializeDOMElements() {
     logoutBtn = document.getElementById('logout-btn');
 }
 
-async function checkAuthentication() {
-    try {
-        const response = await fetch(CONFIG.apiUrl('api/users/me'), {
-            credentials: 'include'
-        });
-
-        if (!response.ok) {
-            console.log('Not authenticated, redirecting to login');
-            window.location.href = '/login.html';
-            return;
-        }
-
-        const data = await response.json();
-        currentUser = data.user;
-
-        // Update UI
-        if (userNameSpan) {
-            userNameSpan.textContent = currentUser.full_name;
-        }
-
-        // Update dashboard link in header navigation
-        const dashboardLink = document.querySelector('a[href="/member_dashboard.html"]');
-        if (dashboardLink && currentUser && currentUser.role === 'admin') {
-            dashboardLink.href = '/admin_dashboard.html';
-        }
-
-        console.log('User authenticated:', currentUser.email, 'Role:', currentUser.role);
-    } catch (error) {
-        console.error('Authentication check failed:', error);
-        window.location.href = '/login.html';
-    }
-}
-
 function setupEventListeners() {
+    // Upload button
+    const uploadBtn = document.getElementById('upload-btn');
+    if (uploadBtn) {
+        uploadBtn.addEventListener('click', () => {
+            document.getElementById('file-input').click();
+        });
+    }
+
+    // File input
+    const fileInput = document.getElementById('file-input');
+    if (fileInput) {
+        fileInput.addEventListener('change', handleFileUpload);
+    }
+
+    // Upload form
+    const uploadForm = document.getElementById('upload-form');
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', handleFormSubmit);
+    }
+
+    // Logout button
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', logout);
+    }
+
     // Search and filters
     if (searchInput) {
         searchInput.addEventListener('input', debounce(() => {
@@ -137,21 +237,78 @@ function setupEventListeners() {
         uploadResourceBtn.addEventListener('click', () => openUploadModal());
     }
 
-    // Upload form
-    if (uploadForm) {
-        uploadForm.addEventListener('submit', handleUpload);
-    }
-
     // File upload handling
     setupFileUpload();
 
-    // Logout
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', handleLogout);
-    }
-
     // Pagination
     setupPaginationListeners();
+}
+
+function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (file) {
+        document.getElementById('file-name').textContent = file.name;
+        document.getElementById('upload-section').classList.remove('hidden');
+    }
+}
+
+async function handleFormSubmit(event) {
+    event.preventDefault();
+
+    const fileInput = document.getElementById('file-input');
+    const titleInput = document.getElementById('resource-title');
+    const descriptionInput = document.getElementById('resource-description');
+    const typeSelect = document.getElementById('resource-type');
+
+    if (!fileInput.files[0]) {
+        showMessage('Please select a file', 'error');
+        return;
+    }
+
+    if (!titleInput.value.trim()) {
+        showMessage('Please enter a title', 'error');
+        return;
+    }
+
+    const submitBtn = document.getElementById('submit-upload');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Uploading...';
+
+    try {
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        formData.append('title', titleInput.value.trim());
+        formData.append('description', descriptionInput.value.trim());
+        formData.append('type', typeSelect.value);
+
+        const response = await fetch(CONFIG.apiUrl('api/resources/upload'), {
+            method: 'POST',
+            credentials: 'include',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Upload failed');
+        }
+
+        showMessage('Resource uploaded successfully', 'success');
+
+        // Reset form
+        document.getElementById('upload-form').reset();
+        document.getElementById('upload-section').classList.add('hidden');
+        document.getElementById('file-name').textContent = '';
+
+        // Reload resources
+        await loadResources();
+
+    } catch (error) {
+        console.error('Upload error:', error);
+        showMessage(error.message || 'Failed to upload resource', 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Upload Resource';
+    }
 }
 
 function setupFileUpload() {
@@ -289,355 +446,6 @@ function setupPaginationListeners() {
     });
 }
 
-async function loadResources() {
-    try {
-        showLoading(true);
-
-        const params = new URLSearchParams({
-            page: currentPage,
-            limit: 20,
-            category: currentFilters.category,
-            type: currentFilters.type,
-            search: currentFilters.search,
-            sortBy: currentFilters.sortBy,
-            sortOrder: currentFilters.sortOrder
-        });
-
-        const response = await fetch(CONFIG.apiUrl(`api/resources?${params}`), {
-            credentials: 'include'
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to load resources');
-        }
-
-        const data = await response.json();
-        currentResources = data.resources;
-
-        displayResources(data.resources);
-        updatePagination(data.pagination);
-
-    } catch (error) {
-        console.error('Error loading resources:', error);
-        showMessage('Failed to load resources. Please try again.', 'error');
-        showNoResources();
-    } finally {
-        showLoading(false);
-    }
-}
-
-function displayResources(resources) {
-    if (!resourcesContainer) return;
-
-    if (resources.length === 0) {
-        showNoResources();
-        return;
-    }
-
-    resourcesContainer.innerHTML = '';
-    resourcesContainer.classList.remove('hidden');
-    noResourcesDiv.classList.add('hidden');
-
-    resources.forEach(resource => {
-        const resourceCard = createResourceCard(resource);
-        resourcesContainer.appendChild(resourceCard);
-    });
-}
-
-function createResourceCard(resource) {
-    const card = document.createElement('div');
-    card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer';
-
-    const fileSize = formatFileSize(resource.file_size);
-    const uploadDate = new Date(resource.created_at).toLocaleDateString();
-    const fileIcon = getFileIconByType(resource.file_type);
-
-    card.innerHTML = `
-        <div class="flex items-start justify-between mb-4">
-            <div class="flex items-center gap-3">
-                ${fileIcon.outerHTML}
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900 line-clamp-1">${escapeHtml(resource.title)}</h3>
-                    <p class="text-sm text-gray-500">${resource.category}</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-2">
-                ${resource.access_level === 'admin' ? '<span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-600 rounded-full">Admin Only</span>' : ''}
-                ${resource.access_level === 'members' ? '<span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-600 rounded-full">Members</span>' : ''}
-                ${resource.access_level === 'all' ? '<span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-600 rounded-full">Public</span>' : ''}
-            </div>
-        </div>
-
-        <p class="text-gray-600 text-sm mb-4 line-clamp-2">${escapeHtml(resource.description || '')}</p>
-
-        <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
-            <span>${fileSize}</span>
-            <span>${resource.downloads || 0} downloads</span>
-            <span>Added ${uploadDate}</span>
-        </div>
-
-        ${resource.tags ? `
-            <div class="mb-4">
-                <div class="flex flex-wrap gap-1">
-                    ${resource.tags.split(',').map(tag => 
-                        `<span class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">${escapeHtml(tag.trim())}</span>`
-                    ).join('')}
-                </div>
-            </div>
-        ` : ''}
-
-        <div class="flex items-center justify-between">
-            <span class="text-sm text-gray-500">by ${escapeHtml(resource.uploaded_by_name || 'Unknown')}</span>
-            <div class="flex gap-2">
-                <button onclick="viewResource(${resource.id})" 
-                        class="px-3 py-1 text-sm text-brand-primary border border-brand-primary rounded hover:bg-brand-primary hover:text-white transition-colors">
-                    View
-                </button>
-                <button onclick="downloadResource(${resource.id})" 
-                        class="px-3 py-1 text-sm bg-brand-primary text-white rounded hover:bg-brand-primary/90 transition-colors">
-                    Download
-                </button>
-            </div>
-        </div>
-    `;
-
-    return card;
-}
-
-function getFileIconByType(fileType) {
-    const icon = document.createElement('div');
-    icon.className = 'w-10 h-10 flex items-center justify-center rounded-lg';
-
-    switch (fileType) {
-        case 'pdf':
-            icon.className += ' bg-red-100';
-            icon.innerHTML = '<svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>';
-            break;
-        case 'doc':
-        case 'docx':
-            icon.className += ' bg-blue-100';
-            icon.innerHTML = '<svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>';
-            break;
-        case 'xls':
-        case 'xlsx':
-            icon.className += ' bg-green-100';
-            icon.innerHTML = '<svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>';
-            break;
-        case 'ppt':
-        case 'pptx':
-            icon.className += ' bg-orange-100';
-            icon.innerHTML = '<svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m0 0V2a1 1 0 011-1h2a1 1 0 011 1v18a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1h2a1 1 0 011 1v2m0 0h8m-8 0V4a1 1 0 011-1h6a1 1 0 011 1v2M7 8h10M7 12h4m-4 4h4"></path></svg>';
-            break;
-        case 'jpg':
-        case 'jpeg':
-        case 'png':
-        case 'gif':
-            icon.className += ' bg-purple-100';
-            icon.innerHTML = '<svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>';
-            break;
-        default:
-            icon.className += ' bg-gray-100';
-            icon.innerHTML = '<svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>';
-    }
-
-    return icon;
-}
-
-async function viewResource(resourceId) {
-    try {
-        const response = await fetch(CONFIG.apiUrl(`api/resources/${resourceId}`), {
-            credentials: 'include'
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to load resource details');
-        }
-
-        const data = await response.json();
-        showResourceModal(data.resource);
-
-    } catch (error) {
-        console.error('Error loading resource details:', error);
-        showMessage('Failed to load resource details.', 'error');
-    }
-}
-
-function showResourceModal(resource) {
-    const modalTitle = document.getElementById('resource-modal-title');
-    const modalContent = document.getElementById('resource-modal-content');
-    const modalActions = document.getElementById('resource-modal-actions');
-
-    if (!modalTitle || !modalContent || !modalActions) return;
-
-    modalTitle.textContent = resource.title;
-
-    const uploadDate = new Date(resource.created_at).toLocaleDateString();
-    const fileSize = formatFileSize(resource.file_size);
-
-    modalContent.innerHTML = `
-        <div class="space-y-4">
-            <div>
-                <h4 class="font-medium text-gray-900 mb-2">Description</h4>
-                <p class="text-gray-600">${escapeHtml(resource.description || 'No description provided.')}</p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <h4 class="font-medium text-gray-900 mb-1">Category</h4>
-                    <p class="text-gray-600 capitalize">${resource.category}</p>
-                </div>
-                <div>
-                    <h4 class="font-medium text-gray-900 mb-1">Access Level</h4>
-                    <p class="text-gray-600 capitalize">${resource.access_level}</p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <h4 class="font-medium text-gray-900 mb-1">File Size</h4>
-                    <p class="text-gray-600">${fileSize}</p>
-                </div>
-                <div>
-                    <h4 class="font-medium text-gray-900 mb-1">Downloads</h4>
-                    <p class="text-gray-600">${resource.downloads || 0}</p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <h4 class="font-medium text-gray-900 mb-1">Uploaded By</h4>
-                    <p class="text-gray-600">${escapeHtml(resource.uploaded_by_name || 'Unknown')}</p>
-                </div>
-                <div>
-                    <h4 class="font-medium text-gray-900 mb-1">Upload Date</h4>
-                    <p class="text-gray-600">${uploadDate}</p>
-                </div>
-            </div>
-
-            ${resource.tags ? `
-                <div>
-                    <h4 class="font-medium text-gray-900 mb-1">Tags</h4>
-                    <div class="flex flex-wrap gap-1">
-                        ${resource.tags.split(',').map(tag => 
-                            `<span class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">${escapeHtml(tag.trim())}</span>`
-                        ).join('')}
-                    </div>
-                </div>
-            ` : ''}
-        </div>
-    `;
-
-    modalActions.innerHTML = `
-        <button onclick="downloadResource(${resource.id})" 
-                class="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 transition-colors">
-            Download
-        </button>
-        <button onclick="closeResourceModal()" 
-                class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-            Close
-        </button>
-    `;
-
-    resourceModal.classList.remove('hidden');
-}
-
-async function downloadResource(resourceId) {
-    try {
-        const response = await fetch(CONFIG.apiUrl(`api/resources/${resourceId}/download`), {
-            credentials: 'include'
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to download resource');
-        }
-
-        // Get filename from Content-Disposition header
-        const contentDisposition = response.headers.get('Content-Disposition');
-        const filename = contentDisposition 
-            ? contentDisposition.split('filename=')[1].replace(/"/g, '')
-            : 'download';
-
-        // Create blob and download
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-
-        showMessage('Download started successfully!', 'success');
-
-    } catch (error) {
-        console.error('Error downloading resource:', error);
-        showMessage(error.message, 'error');
-    }
-}
-
-function openUploadModal() {
-    if (uploadModal) {
-        // Reset form
-        uploadForm.reset();
-        document.getElementById('file-list').innerHTML = '';
-        uploadModal.classList.remove('hidden');
-    }
-}
-
-function closeUploadModal() {
-    if (uploadModal) {
-        uploadModal.classList.add('hidden');
-    }
-}
-
-function closeResourceModal() {
-    if (resourceModal) {
-        resourceModal.classList.add('hidden');
-    }
-}
-
-async function handleUpload(e) {
-    e.preventDefault();
-
-    const submitBtn = document.getElementById('upload-submit-btn');
-    const uploadText = submitBtn?.querySelector('.upload-text');
-    const uploadLoading = submitBtn?.querySelector('.upload-loading');
-
-    if (submitBtn) submitBtn.disabled = true;
-    if (uploadText) uploadText.classList.add('hidden');
-    if (uploadLoading) uploadLoading.classList.remove('hidden');
-
-    try {
-        const formData = new FormData(uploadForm);
-
-        const response = await fetch(CONFIG.apiUrl('api/resources'), {
-            method: 'POST',
-            credentials: 'include',
-            body: formData
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.message || 'Failed to upload resource');
-        }
-
-        showMessage(data.message, 'success');
-        closeUploadModal();
-        await loadResources();
-
-    } catch (error) {
-        console.error('Error uploading resource:', error);
-        showMessage(error.message, 'error');
-    } finally {
-        if (submitBtn) submitBtn.disabled = false;
-        if (uploadText) uploadText.classList.remove('hidden');
-        if (uploadLoading) uploadLoading.classList.add('hidden');
-    }
-}
-
 function clearFilters() {
     currentFilters = {
         search: '',
@@ -708,7 +516,7 @@ function showLoading(show) {
 
 function showNoResources() {
     if (!resourcesContainer || !noResourcesDiv) return;
-    
+
     resourcesContainer.classList.add('hidden');
     noResourcesDiv.classList.remove('hidden');
     if (paginationDiv) paginationDiv.classList.add('hidden');
@@ -717,6 +525,19 @@ function showNoResources() {
     resourcesContainer.classList.add('hidden');
     noResourcesDiv.classList.remove('hidden');
     paginationDiv.classList.add('hidden');
+}
+
+async function logout() {
+    try {
+        await fetch(CONFIG.apiUrl('api/auth/logout'), {
+            method: 'POST',
+            credentials: 'include'
+        });
+    } catch (error) {
+        console.error('Logout error:', error);
+    } finally {
+        window.location.href = '/';
+    }
 }
 
 async function handleLogout() {
@@ -758,9 +579,14 @@ function debounce(func, wait) {
 }
 
 function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
 }
 
 function formatFileSize(bytes) {
@@ -772,15 +598,29 @@ function formatFileSize(bytes) {
 }
 
 function showMessage(message, type = 'info', duration = 3000) {
-    // Reuse the showMessage function from auth.js
-    if (typeof window.showMessage === 'function') {
-        window.showMessage(message, type, duration);
-        return;
+    // Create or get the toast container
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'fixed top-4 right-4 z-50 flex flex-col items-end space-y-2';
+        document.body.appendChild(container);
     }
 
-    // Fallback implementation
-    console.log(`${type.toUpperCase()}: ${message}`);
-    alert(message);
+    // Create the toast element
+    const toast = document.createElement('div');
+    toast.className = `mb-2 px-6 py-3 rounded shadow-lg text-white font-medium ${
+        type === 'error' ? 'bg-red-600' :
+        type === 'success' ? 'bg-green-600' :
+        type === 'warning' ? 'bg-yellow-500' :
+        'bg-blue-600'
+    }`;
+    toast.textContent = message;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.remove();
+    }, duration);
 }
 
 // Global functions for onclick handlers
@@ -788,3 +628,4 @@ window.viewResource = viewResource;
 window.downloadResource = downloadResource;
 window.closeUploadModal = closeUploadModal;
 window.closeResourceModal = closeResourceModal;
+window.deleteResource = deleteResource;

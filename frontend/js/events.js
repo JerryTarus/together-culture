@@ -111,17 +111,22 @@ function updateNavigationLinks() {
     const dashboardLink = document.querySelector('a[href="./member_dashboard.html"]');
     if (dashboardLink && currentUser && currentUser.role === 'admin') {
         dashboardLink.href = './admin_dashboard.html';
+        dashboardLink.textContent = 'Admin Dashboard';
     }
+    
+    // Also update any other dashboard links
+    const allDashboardLinks = document.querySelectorAll('a[href*="dashboard"]');
+    allDashboardLinks.forEach(link => {
+        if (currentUser && currentUser.role === 'admin' && link.href.includes('member_dashboard')) {
+            link.href = './admin_dashboard.html';
+        }
+    });
 }
 
 function setupEventListeners() {
-    // Search and filters
+    // Search and filters with autocomplete
     if (searchInput) {
-        searchInput.addEventListener('input', debounce(() => {
-            currentFilters.search = searchInput.value;
-            currentPage = 1;
-            loadEvents();
-        }, 300));
+        setupSearchAutocomplete();
     }
     
     if (statusFilter) {
@@ -882,6 +887,83 @@ function showMessage(message, type = 'info', duration = 3000) {
     alert(message);
 }
 
+function setupSearchAutocomplete() {
+    const searchInput = document.getElementById('search-input');
+    const searchContainer = searchInput.parentElement;
+    
+    // Create dropdown container
+    const dropdown = document.createElement('div');
+    dropdown.className = 'hidden absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-60 overflow-y-auto shadow-lg';
+    dropdown.id = 'search-dropdown';
+    searchContainer.style.position = 'relative';
+    searchContainer.appendChild(dropdown);
+    
+    let searchTimeout;
+    
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        
+        clearTimeout(searchTimeout);
+        
+        if (query.length < 2) {
+            dropdown.classList.add('hidden');
+            return;
+        }
+        
+        searchTimeout = setTimeout(async () => {
+            try {
+                const response = await fetch(CONFIG.apiUrl(`api/events?search=${encodeURIComponent(query)}&limit=5`), {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showSearchDropdown(data.events, query);
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+            }
+        }, 300);
+    });
+    
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!searchContainer.contains(e.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+}
+
+function showSearchDropdown(events, query) {
+    const dropdown = document.getElementById('search-dropdown');
+    
+    if (events.length === 0) {
+        dropdown.innerHTML = '<div class="p-3 text-gray-500 text-sm">No events found</div>';
+    } else {
+        dropdown.innerHTML = events.map(event => `
+            <div class="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0" onclick="selectSearchEvent('${event.title}')">
+                <div class="font-medium text-gray-900">${escapeHtml(event.title)}</div>
+                <div class="text-sm text-gray-500">${formatDate(new Date(event.date))} • ${escapeHtml(event.location)}</div>
+            </div>
+        `).join('');
+    }
+    
+    dropdown.classList.remove('hidden');
+}
+
+function selectSearchEvent(title) {
+    const searchInput = document.getElementById('search-input');
+    const dropdown = document.getElementById('search-dropdown');
+    
+    searchInput.value = title;
+    dropdown.classList.add('hidden');
+    
+    // Trigger search
+    currentFilters.search = title;
+    currentPage = 1;
+    loadEvents();
+}
+
 // Global functions for onclick handlers
 window.viewEvent = viewEvent;
 window.editEvent = editEvent;
@@ -890,3 +972,4 @@ window.registerForEvent = registerForEvent;
 window.unregisterFromEvent = unregisterFromEvent;
 window.closeEventModal = closeEventModal;
 window.closeEventFormModal = closeEventFormModal;
+window.selectSearchEvent = selectSearchEvent;

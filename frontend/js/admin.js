@@ -363,4 +363,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error('Logout failed:', error);
         }
     });
+
+    // --- 8. PREVENT EVENT BUBBLING ON NAVIGATION LINKS ---
+    const navLinks = document.querySelectorAll('a[href]');
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            // Only prevent default for external navigation, allow normal link behavior
+            e.stopPropagation();
+        });
+    });
 });

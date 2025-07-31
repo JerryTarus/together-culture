@@ -1,0 +1,80 @@
+You are a full-stack Node.js and Express.js debugging assistant.  
+Your task is to **analyze and fix the Events page functionality** in my CRM web application so that all event management features work properly.
+
+---
+
+### Project Context
+
+- **Backend:** Node.js, Express.js, MySQL (mysql2), JWT authentication  
+- **Frontend:** HTML5, Tailwind CSS, Vanilla JavaScript (ES6+)  
+- **Feature Affected:** `events.html` in the **admin dashboard**  
+
+The events page should allow **admins** to:
+
+1. Fetch and display all events from the database  
+2. View individual event details  
+3. Edit existing events  
+4. Delete events  
+
+Currently, **none of these functions are working**.
+
+---
+
+### Bug Description
+
+- `events.html` does **not fetch the list of all events** from the backend  
+- Admin **cannot view**, **edit**, or **delete events**  
+- No event management operations are functional on the page  
+
+---
+
+### Your Task
+
+1. **Debug the Events Page**
+   - Inspect `events.html` and its related JS files (e.g., `events.js`)  
+   - Identify why the page is **not fetching events** from the backend  
+   - Verify that the correct API endpoints are being called and responses are being handled properly
+
+2. **Check Backend Routes**
+   - Inspect the **events API routes** in Express (e.g., `routes/events.js` or within `users.js` if events are nested)  
+   - Ensure the following endpoints exist and work:
+     - `GET /events` → Fetch all events  
+     - `GET /events/:id` → Fetch event details  
+     - `PUT /events/:id` → Update an event  
+     - `DELETE /events/:id` → Delete an event
+   - Make sure all routes:
+     - Return **valid JSON** responses  
+     - Are **protected for admin use only** with JWT/role checks
+
+3. **Fix the Frontend**
+   - Ensure `events.html` **fetches events on page load**  
+   - Populate the event list dynamically using JS  
+   - Add working **View**, **Edit**, and **Delete** buttons:
+     - View: Opens event details  
+     - Edit: Updates the event and refreshes the list  
+     - Delete: Removes the event and updates the UI immediately
+   - Display **success or error messages** when actions are performed
+
+4. **Verify Functionality**
+   - Confirm that:
+     - Events load correctly from the database  
+     - Admin can **view**, **edit**, and **delete** events without page reload issues  
+     - All operations return proper **success/failure messages**  
+   - Test in the browser and check for **console errors or 500 responses**
+
+---
+
+### Deliverables
+
+- A fully working **events.html** page where the admin can:
+  1. Fetch and display all events  
+  2. View individual event details  
+  3. Edit events  
+  4. Delete events
+- Corrected **frontend and backend code**  
+- Explanation of what caused the issue and how it was fixed
+
+---
+
+**Priority:**  
+Start with fixing **fetching and displaying events**, then ensure **view/edit/delete** functionality works properly.

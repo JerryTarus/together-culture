@@ -40,7 +40,7 @@ function initializeDOMElements() {
 
 async function checkAuthentication() {
     try {
-        const response = await fetch(CONFIG.apiUrl('api/users/me'), {
+        const response = await fetch(CONFIG.apiUrl('api/auth/me'), {
             credentials: 'include'
         });
 
@@ -50,7 +50,7 @@ async function checkAuthentication() {
         }
 
         const data = await response.json();
-        currentUser = data.user;
+        currentUser = data;
 
         // Update user name in UI
         const userNameElement = document.getElementById('user-name');
@@ -81,7 +81,8 @@ async function loadAllMembers() {
             throw new Error('Failed to load members');
         }
 
-        const members = await response.json();
+        const data = await response.json();
+        const members = data.users || data || [];
         allMembers = members.filter(member => member.id !== currentUser.id && member.status === 'approved');
 
         displayMembers(allMembers);

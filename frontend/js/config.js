@@ -1,13 +1,19 @@
 // Frontend configuration
 const CONFIG = {
     // Backend API base URL - change this if your backend runs on a different port
-    API_BASE_URL: 'http://localhost:5000',
+    API_BASE_URL: window.location.protocol + '//' + window.location.hostname + ':5000',
     
     // Helper function to build API URLs
     apiUrl: (endpoint) => {
-        // Remove leading slash if present to avoid double slashes
-        const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
-        return `${CONFIG.API_BASE_URL}/${cleanEndpoint}`;
+        try {
+            // Remove leading slash if present to avoid double slashes
+            const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+            return `${CONFIG.API_BASE_URL}/${cleanEndpoint}`;
+        } catch (error) {
+            console.error('Error building API URL:', error);
+            // Fallback
+            return `http://localhost:5000/${endpoint}`;
+        }
     }
 };
 

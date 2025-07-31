@@ -77,11 +77,12 @@ async function handleLogin(e) {
 
     try {
         // Check if CONFIG is available
-        if (typeof CONFIG === 'undefined') {
-            throw new Error('Configuration not loaded. Please refresh the page.');
+        if (typeof CONFIG === 'undefined' || !CONFIG.apiUrl) {
+            console.error('CONFIG not available, using fallback URL');
+            const apiUrl = 'http://localhost:5000/api/auth/login';
+        } else {
+            var apiUrl = CONFIG.apiUrl('api/auth/login');
         }
-
-        const apiUrl = CONFIG.apiUrl('api/auth/login');
         console.log('Making request to:', apiUrl); // Debug log
 
         const res = await fetch(apiUrl, {
@@ -137,22 +138,22 @@ async function handleLogin(e) {
         // Use setTimeout to allow the message to be seen briefly before redirecting
         setTimeout(() => {
             // Determine the redirect URL based on user role
-            let redirectUrl = '/member_dashboard.html'; // Default for members
+            let redirectUrl = './member_dashboard.html'; // Default for members
 
             if (data.user && data.user.role === 'admin') {
                 console.log("Redirecting admin to admin dashboard...");
-                redirectUrl = '/admin_dashboard.html';
+                redirectUrl = './admin_dashboard.html';
             } else if (data.user) {
                 console.log("Redirecting user to member dashboard...");
-                redirectUrl = '/member_dashboard.html';
+                redirectUrl = './member_dashboard.html';
             } else {
                 // Safety check in case data.user is missing unexpectedly
                 console.error("Unexpected response structure, missing user data:", data);
-                redirectUrl = '/member_dashboard.html'; // Default fallback
+                redirectUrl = './member_dashboard.html'; // Default fallback
             }
 
             console.log('Performing redirect to:', redirectUrl);
-            // Perform the actual redirect using the absolute path
+            // Perform the actual redirect using relative path
             window.location.href = redirectUrl;
         }, 1600); // Redirect slightly after the message appears (1.6 seconds)
         // --- CRITICAL FIX: REDIRECT ENDS ---

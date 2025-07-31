@@ -515,13 +515,6 @@ function showLoading(show) {
 }
 
 function showNoResources() {
-    if (!resourcesContainer || !noResourcesDiv) return;
-
-    resourcesContainer.classList.add('hidden');
-    noResourcesDiv.classList.remove('hidden');
-    if (paginationDiv) paginationDiv.classList.add('hidden');
-}
-```python
     resourcesContainer.classList.add('hidden');
     noResourcesDiv.classList.remove('hidden');
     paginationDiv.classList.add('hidden');
@@ -546,7 +539,7 @@ async function handleLogout() {
             method: 'POST',
             credentials: 'include'
         });
-        
+
         if (response.ok) {
             showMessage('Logged out successfully. Redirecting...', 'success', 1500);
         }

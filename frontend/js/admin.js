@@ -372,7 +372,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         link.addEventListener('click', (e) => {
             // Allow normal navigation, just stop propagation to prevent bubbling
             e.stopPropagation();
-            
+
             // For events links specifically, ensure they navigate properly
             if (link.href.includes('events.html')) {
                 e.preventDefault();
@@ -389,4 +389,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             e.preventDefault();
         });
     });
+
+    // Navigation event listeners
+    const eventsBtn = document.getElementById('eventsBtn');
+    const sidebarEventsBtn = document.getElementById('sidebarEventsBtn');
+
+    if (eventsBtn) {
+        eventsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.location.href = './events.html';
+        });
+    }
+
+    if (sidebarEventsBtn) {
+        sidebarEventsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.location.href = './events.html';
+        });
+    }
 });

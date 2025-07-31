@@ -58,13 +58,13 @@ function updateUIForRole() {
 async function loadResources() {
     try {
         showLoading(true);
-        
+
         const queryParams = new URLSearchParams({
             page: currentPage,
             limit: 20,
             ...currentFilters
         });
-        
+
         const response = await fetch(CONFIG.apiUrl(`api/resources?${queryParams}`), {
             credentials: 'include'
         });
@@ -75,13 +75,13 @@ async function loadResources() {
 
         const data = await response.json();
         console.log('Resources data:', data);
-        
+
         // Handle both old and new API response formats
         const resources = data.resources || data;
         const pagination = data.pagination;
-        
+
         displayResources(Array.isArray(resources) ? resources : []);
-        
+
         if (pagination) {
             updatePagination(pagination);
         }
@@ -114,7 +114,7 @@ function displayResources(resources) {
     container.innerHTML = resources.map(resource => {
         const fileIcon = getFileIconForDisplay(resource.file_type || resource.mime_type);
         const categoryColor = getCategoryColor(resource.category);
-        
+
         return `
             <div class="resource-card rounded-2xl p-6 group">
                 <div class="flex items-start gap-4 mb-4">
@@ -126,9 +126,9 @@ function displayResources(resources) {
                         <span class="inline-block px-3 py-1 text-xs font-medium rounded-full ${categoryColor.replace('bg-', 'bg-').replace('-500', '-100')} ${categoryColor.replace('bg-', 'text-').replace('-500', '-800')}">${escapeHtml(resource.category || 'general')}</span>
                     </div>
                 </div>
-                
+
                 <p class="text-gray-600 text-sm mb-4 line-clamp-2">${escapeHtml(resource.description || 'No description available')}</p>
-                
+
                 <div class="space-y-3 mb-4">
                     <div class="flex items-center justify-between text-xs text-gray-500">
                         <span class="flex items-center gap-1">
@@ -151,7 +151,7 @@ function displayResources(resources) {
                         ${escapeHtml(resource.uploaded_by_name || 'Unknown')} • ${new Date(resource.created_at).toLocaleDateString()}
                     </div>
                 </div>
-                
+
                 <div class="flex gap-2">
                     <button onclick="viewResource(${resource.id})" 
                             class="flex-1 inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-lg text-orange-700 bg-orange-100 hover:bg-orange-200 transition-all duration-300">
@@ -342,7 +342,7 @@ async function handleFormSubmit(event) {
     const submitBtn = document.getElementById('upload-submit-btn');
     const uploadText = submitBtn.querySelector('.upload-text');
     const uploadLoading = submitBtn.querySelector('.upload-loading');
-    
+
     submitBtn.disabled = true;
     uploadText.textContent = 'Uploading...';
     uploadLoading.classList.remove('hidden');
@@ -632,6 +632,13 @@ async function handleLogout() {
     }
 }
 
+// Dashboard navigation
+    document.getElementById('dashboardBtn')?.addEventListener('click', () => {
+        // Redirect based on user role
+        const dashboardUrl = window.currentUser?.role === 'admin' ? './admin_dashboard.html' : './member_dashboard.html';
+        window.location.href = dashboardUrl;
+    });
+
 // Utility functions
 function debounce(func, wait) {
     let timeout;
@@ -668,7 +675,7 @@ function getFileIconForDisplay(mimeType) {
     if (!mimeType) {
         return '<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>';
     }
-    
+
     if (mimeType.includes('image') || mimeType.includes('png') || mimeType.includes('jpg') || mimeType.includes('jpeg')) {
         return '<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>';
     } else if (mimeType.includes('pdf')) {
@@ -853,3 +860,45 @@ window.openUploadModal = openUploadModal;
 window.closeUploadModal = closeUploadModal;
 window.closeResourceModal = closeResourceModal;
 window.deleteResource = deleteResource;
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('Resources page loaded');
+
+    try {
+        await checkAuth();
+        await loadResources();
+        initializeEventListeners();
+    } catch (error) {
+        console.error('Error initializing resources page:', error);
+        showMessage('Failed to initialize page', 'error');
+    }
+});
+
+// Check authentication and store user data
+async function checkAuth() {
+    try {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/auth/me`, {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                window.location.href = '/login.html';
+                return;
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const userData = await response.json();
+        console.log('User authenticated:', userData.email);
+
+        // Store user data globally
+        window.currentUser = userData;
+
+    } catch (error) {
+        console.error('Authentication error:', error);
+        window.location.href = '/login.html';
+    }
+}

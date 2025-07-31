@@ -310,6 +310,26 @@ document.addEventListener('DOMContentLoaded', () => {
         activityModal.classList.add('hidden');
     });
 
+    // Logout function
+    async function logout() {
+        try {
+            const response = await fetch(`${CONFIG.apiUrl('api/auth/logout')}`, {
+                method: 'POST',
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                window.location.href = '/login.html';
+            } else {
+                throw new Error('Logout failed');
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Force redirect even if logout request fails
+            window.location.href = '/login.html';
+        }
+    }
+
     // Logout button
     if (logoutButton) {
         logoutButton.addEventListener('click', async () => {

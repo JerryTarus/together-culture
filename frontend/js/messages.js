@@ -139,8 +139,19 @@ async function loadConversations() {
             throw new Error('Failed to load conversations');
         }
 
-        conversations = await response.json();
-        displayConversations(conversations);
+        let data;
+        try {
+            data = await response.json();
+        } catch (parseError) {
+            console.error('Failed to parse response as JSON:', parseError);
+            throw new Error('Server returned invalid response');
+        }
+
+        if (data.success) {
+            displayConversations(data.conversations);
+        } else {
+            throw new Error(data.message || 'Failed to load conversations');
+        }
 
     } catch (error) {
         console.error('Error loading conversations:', error);
@@ -336,6 +347,18 @@ async function sendMessage() {
 
         if (!response.ok) {
             throw new Error('Failed to send message');
+        }
+
+        let data;
+        try {
+            data = await response.json();
+        } catch (parseError) {
+            console.error('Failed to parse response as JSON:', parseError);
+            throw new Error('Server returned invalid response');
+        }
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to send message');
         }
 
         const result = await response.json();

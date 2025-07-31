@@ -77,13 +77,29 @@ router.post('/conversations/:id/messages', protect, async (req, res) => {
             [id, req.user.id, content.trim()]
         );
 
-        // Update conversation timestamp
-        await db.query(
-            'UPDATE conversations SET updated_at = NOW() WHERE id = ?',
-            [id]
-        );
+        // Update conversation timestamp (add column if it doesn't exist)
+        try {
+            await db.query(
+                'UPDATE conversations SET updated_at = NOW() WHERE id = ?',
+                [id]
+            );
+        } catch (error) {
+            if (error.code === 'ER_BAD_FIELD_ERROR') {
+                // Add updated_at column if it doesn't exist
+                await db.query(
+                    'ALTER TABLE conversations ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'
+                );
+                await db.query(
+                    'UPDATE conversations SET updated_at = NOW() WHERE id = ?',
+                    [id]
+                );
+            } else {
+                throw error;
+            }
+        }
 
         res.status(201).json({
+            success: true,
             message: 'Message sent successfully',
             message_id: result.insertId
         });

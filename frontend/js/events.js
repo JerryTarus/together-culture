@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 // Check authentication and user role
 async function checkAuth() {
     try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/api/auth/verify`, {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/auth/me`, {
             method: 'GET',
             credentials: 'include'
         });
@@ -40,10 +40,10 @@ async function checkAuth() {
         }
 
         const data = await response.json();
-        console.log('User authenticated:', data.user.email);
+        console.log('User authenticated:', data.email);
 
-        isAdmin = data.user.role === 'admin';
-        updateUserInfo(data.user);
+        isAdmin = data.role === 'admin';
+        updateUserInfo(data);
 
         // Show/hide admin-only elements
         const createBtn = document.getElementById('createEventBtn');

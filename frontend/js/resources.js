@@ -46,11 +46,15 @@ function updateUIForRole() {
     const uploadButton = document.getElementById('upload-btn');
     const adminActions = document.querySelectorAll('.admin-only');
 
-    if (currentUser.role === 'admin') {
+    if (currentUser.role === 'admin' || (currentUser.role === 'member' && currentUser.status === 'approved')) {
         if (uploadButton) uploadButton.style.display = 'block';
-        adminActions.forEach(el => el.style.display = 'block');
     } else {
         if (uploadButton) uploadButton.style.display = 'none';
+    }
+    // Only admins see admin actions
+    if (currentUser.role === 'admin') {
+        adminActions.forEach(el => el.style.display = 'block');
+    } else {
         adminActions.forEach(el => el.style.display = 'none');
     }
 }
@@ -124,6 +128,9 @@ function displayResources(resources) {
                     <div class="flex-1 min-w-0">
                         <h3 class="text-lg font-bold text-gray-900 mb-1 truncate group-hover:text-orange-600 transition-colors">${escapeHtml(resource.title)}</h3>
                         <span class="inline-block px-3 py-1 text-xs font-medium rounded-full ${categoryColor.replace('bg-', 'bg-').replace('-500', '-100')} ${categoryColor.replace('bg-', 'text-').replace('-500', '-800')}">${escapeHtml(resource.category || 'general')}</span>
+                        ${(currentUser && resource.uploaded_by_id === currentUser.id) ? `<span class="inline-block ml-2 px-2 py-1 text-xs rounded-full ${resource.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : resource.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">
+                            ${resource.status === 'pending' ? 'Pending Approval' : resource.status === 'rejected' ? 'Rejected' : 'Approved'}
+                        </span>` : ''}
                     </div>
                 </div>
 
@@ -355,6 +362,10 @@ async function handleFormSubmit(event) {
         formData.append('category', categorySelect.value);
         formData.append('access_level', accessSelect.value);
         formData.append('tags', tagsInput.value.trim());
+        // Ensure member uploads are set to pending
+        if (currentUser.role === 'member') {
+            formData.append('status', 'pending');
+        }
 
         const response = await fetch(CONFIG.apiUrl('api/resources'), {
             method: 'POST',
@@ -634,9 +645,12 @@ async function handleLogout() {
 
 // Dashboard navigation
     document.getElementById('dashboardBtn')?.addEventListener('click', () => {
-        // Redirect based on user role
-        const dashboardUrl = window.currentUser?.role === 'admin' ? './admin_dashboard.html' : './member_dashboard.html';
-        window.location.href = dashboardUrl;
+        // Always redirect admins to admin dashboard
+        if (window.currentUser?.role === 'admin') {
+            window.location.href = './admin_dashboard.html';
+        } else {
+            window.location.href = './member_dashboard.html';
+        }
     });
 
 // Utility functions

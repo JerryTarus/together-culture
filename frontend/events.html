@@ -9,28 +9,79 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="bg-gray-50">
-    <!-- Header -->
-    <header class="bg-white shadow-sm border-b border-gray-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center">
-                    <h1 class="text-xl font-semibold text-gray-900">Event Management</h1>
+<body class="bg-gray-100">
+    <!-- Header Navigation -->
+    <header class="w-full bg-white shadow-md z-50">
+        <div class="main-container flex items-center justify-between h-16">
+            <div class="flex items-center gap-6">
+                <a href="/" class="flex items-center gap-2">
+                    <svg class="h-8 w-8 brand-text-primary" viewBox="0 0 48 48" fill="none">
+                        <path d="M39.5563 34.1455V13.8546C39.5563 15.708 36.8773 17.3437 32.7927 18.3189C30.2914 18.916 27.263 19.2655 24 19.2655C20.737 19.2655 17.7086 18.916 15.2073 18.3189C11.1227 17.3437 8.44365 15.708 8.44365 13.8546V34.1455C8.44365 35.9988 11.1227 37.6346 15.2073 38.6098C17.7086 39.2069 20.737 39.5564 24 39.5564C27.263 39.5564 30.2914 39.2069 32.7927 38.6098C36.8773 37.6346 39.5563 35.9988 39.5563 34.1455Z" fill="currentColor"></path>
+                    </svg>
+                    <h1 class="text-xl font-bold brand-text-dark">Together Culture</h1>
+                </a>
+                <div class="hidden md:flex items-center gap-4">
+                    <a id="dashboard-link" href="./admin_dashboard.html" class="text-brand-primary font-semibold hover:text-brand-primary">Dashboard</a>
+                    <a href="./member_directory.html" class="text-gray-600 hover:text-gray-900">Members</a>
+                    <a id="events-link" href="./events.html" class="text-brand-primary font-semibold">Events</a>
+                    <a href="./messages.html" class="text-gray-600 hover:text-gray-900">Messages</a>
+                    <a href="./resources.html" class="text-gray-600 hover:text-gray-900">Resources</a>
+                    <a href="./settings.html" class="text-gray-600 hover:text-gray-900">Settings</a>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <button id="createEventBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
-                        <i class="fas fa-plus mr-2"></i>Create Event
-                    </button>
-                    <button onclick="goToAdminDashboard()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
-                        <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
-                    </button>
-                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="user-name-header" class="text-sm text-gray-600"></span>
+                <button id="logout-button-header" class="text-sm text-red-600 hover:text-red-800">Logout</button>
             </div>
         </div>
     </header>
+    <div id="loader" class="flex justify-center items-center h-screen">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-brand-primary"></div>
+    </div>
+    <div id="root" class="hidden flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white shadow-md flex flex-col">
+            <div class="p-6 border-b">
+                <h1 class="text-2xl font-bold brand-text-dark">Admin Panel</h1>
+                <p id="user-name" class="text-sm text-gray-500 mt-1"></p>
+            </div>
+            <nav class="flex-grow px-4 py-6">
+                <a href="./admin_dashboard.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v4a1 1 0 001 1h3m10 0h3a1 1 0 001-1V7a1 1 0 00-1-1h-3M7 7V3a1 1 0 011-1h8a1 1 0 011 1v4"/></svg>
+                    Dashboard
+                </a>
+                <a href="./member_directory.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m9-5a4 4 0 10-8 0 4 4 0 008 0zm-4-4V4m0 0a4 4 0 110 8 4 4 0 010-8z"/></svg>
+                    Members
+                </a>
+                <a href="./events.html" class="flex items-center p-3 my-1 bg-brand-beige text-brand-primary rounded-lg font-semibold">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4m-9 4h10m-7 4h4"/></svg>
+                    Events
+                </a>
+                <a href="./messages.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8h2a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V10a2 2 0 012-2h2m2-4h4m-4 4h4"/></svg>
+                    Messages
+                </a>
+                <a href="./resources.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8h2a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    Resources
+                </a>
+                <a href="./settings.html" class="flex items-center p-3 my-1 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Settings
+                </a>
+            </nav>
+            <div class="p-4 border-t">
+                <button id="logout-button" class="w-full text-left p-3 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                </button>
+            </div>
+        </aside>
+        <!-- Main Content -->
+        <main class="flex-1 p-8 overflow-y-auto">
+            <!-- Notification area -->
+            <div id="notification-container" class="fixed top-6 right-6 z-50"></div>
 
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <!-- Search and Filter Section -->
         <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div class="flex flex-col sm:flex-row gap-4">

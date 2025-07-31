@@ -8,10 +8,66 @@ let isLoading = false;
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', async function() {
+    // Page Elements
+    const loader = document.getElementById('loader');
+    const rootEl = document.getElementById('root');
+    const logoutButton = document.getElementById('logout-button');
+
+    // --- 1. VERIFY USER STATUS & GET USER INFO ---
+    try {
+        const userRes = await fetch(CONFIG.apiUrl('api/users/me'), { credentials: 'include' });
+        if (!userRes.ok) {
+            window.location.href = './login.html';
+            return;
+        }
+        const userObj = await userRes.json();
+        const user = userObj.user || userObj;
+        if (!user || user.status !== 'approved') {
+            alert('Access Denied: Your account is not approved.');
+            window.location.href = './login.html';
+            return;
+        }
+        // Set user name in sidebar and header
+        const userNameSidebar = document.getElementById('user-name');
+        if (userNameSidebar) userNameSidebar.textContent = user.full_name;
+        const userNameHeader = document.getElementById('user-name-header');
+        if (userNameHeader) userNameHeader.textContent = user.full_name;
+        // Attach logout to header button
+        const logoutHeaderBtn = document.getElementById('logout-button-header');
+        if (logoutHeaderBtn) {
+            logoutHeaderBtn.addEventListener('click', async () => {
+                try {
+                    await fetch(CONFIG.apiUrl('api/auth/logout'), { method: 'POST', credentials: 'include' });
+                    window.location.href = './login.html';
+                } catch (error) {
+                    console.error('Logout failed:', error);
+                }
+            });
+        }
+        if (logoutButton) {
+            logoutButton.addEventListener('click', async () => {
+                try {
+                    await fetch(CONFIG.apiUrl('api/auth/logout'), { method: 'POST', credentials: 'include' });
+                    window.location.href = './login.html';
+                } catch (error) {
+                    console.error('Logout failed:', error);
+                }
+            });
+        }
+        // Hide loader, show root
+        if (loader) loader.classList.add('hidden');
+        if (rootEl) rootEl.classList.remove('hidden');
+    } catch (error) {
+        console.error('Auth check failed:', error);
+        window.location.href = './login.html';
+        return;
+    }
+
     console.log('Events page loaded');
 
-    // Check authentication and role
-    if (!checkAuth() || !checkAdminRole()) {
+    // Cookie/session-based authentication and user check
+    const isAuthenticated = await checkAuthAndRole();
+    if (!isAuthenticated) {
         return;
     }
 
@@ -22,27 +78,37 @@ document.addEventListener('DOMContentLoaded', async function() {
     await loadEvents();
 });
 
-// Check authentication
-function checkAuth() {
-    const token = localStorage.getItem('token');
-    if (!token) {
+// Cookie/session-based authentication and admin check
+let currentUser = null;
+
+async function checkAuthAndRole() {
+    try {
+        const res = await fetch('/api/users/me', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        if (!res.ok) {
+            window.location.href = '/login.html';
+            return false;
+        }
+        const data = await res.json();
+        currentUser = data.user || data;
+        if (!currentUser || currentUser.status !== 'approved') {
+            showMessage('Access denied. Only approved members can access events.', 'error');
+            setTimeout(() => {
+                window.location.href = '/login.html';
+            }, 2000);
+            return false;
+        }
+        // Set global role for UI logic
+        window.isAdmin = currentUser.role === 'admin';
+        window.isMember = currentUser.role === 'member';
+        return true;
+    } catch (error) {
+        console.error('Auth check failed:', error);
         window.location.href = '/login.html';
         return false;
     }
-    return true;
-}
-
-// Check admin role
-function checkAdminRole() {
-    const userRole = localStorage.getItem('userRole');
-    if (userRole !== 'admin') {
-        showMessage('Access denied. Admin privileges required.', 'error');
-        setTimeout(() => {
-            window.location.href = '/member_dashboard.html';
-        }, 2000);
-        return false;
-    }
-    return true;
 }
 
 // Initialize all event listeners
@@ -118,9 +184,9 @@ async function loadEvents() {
         const response = await fetch(`${API_BASE}/events?${params}`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 'Content-Type': 'application/json'
-            }
+            },
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -139,31 +205,33 @@ async function loadEvents() {
     } catch (error) {
         console.error('Error loading events:', error);
         showErrorState();
-        showMessage('Failed to load events. Please try again.', 'error');
+        showToast('Failed to load events. Please try again.', 'error');
     } finally {
         isLoading = false;
     }
 }
 
-// Display events in the UI
+// Display events in a visually rich, responsive card layout for admin
 function displayEvents(events) {
     const container = document.getElementById('eventsContainer');
     if (!container) return;
 
     if (!events || events.length === 0) {
         container.innerHTML = `
-            <div class="text-center py-8">
-                <i class="fas fa-calendar-times text-3xl text-gray-400 mb-4"></i>
-                <p class="text-gray-600">No events found.</p>
-                <button onclick="openCreateEventModal()" class="mt-4 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
-                    Create First Event
+            <div class="text-center py-16">
+                <i class="fas fa-calendar-times text-4xl text-gray-300 mb-4"></i>
+                <p class="text-lg text-gray-500 mb-4">No events found.</p>
+                <button onclick="openCreateEventModal()" class="mt-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg text-base font-semibold shadow">
+                    <i class="fas fa-plus mr-2"></i> Create First Event
                 </button>
             </div>
         `;
         return;
     }
 
-    const eventsHtml = events.map(event => {
+    // Responsive grid for event cards
+    let eventsHtml = '<div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">';
+    eventsHtml += events.map(event => {
         const eventDate = new Date(event.event_date);
         const formattedDate = eventDate.toLocaleDateString('en-US', {
             year: 'numeric',
@@ -174,47 +242,61 @@ function displayEvents(events) {
             hour: '2-digit',
             minute: '2-digit'
         });
+        const now = new Date();
+        const isPast = eventDate < now;
+        const badge = isPast
+            ? '<span class="inline-block px-2 py-1 text-xs font-semibold bg-gray-200 text-gray-600 rounded-full mr-2">Past</span>'
+            : '<span class="inline-block px-2 py-1 text-xs font-semibold bg-green-100 text-green-700 rounded-full mr-2">Upcoming</span>';
 
         return `
-            <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="flex-1">
-                        <h3 class="text-xl font-semibold text-gray-900 mb-2">${escapeHtml(event.title)}</h3>
-                        <p class="text-gray-600 mb-3">${escapeHtml(event.description)}</p>
-                        <div class="flex flex-wrap gap-4 text-sm text-gray-500">
-                            <div class="flex items-center">
-                                <i class="fas fa-calendar mr-2"></i>
-                                ${formattedDate}
-                            </div>
-                            <div class="flex items-center">
-                                <i class="fas fa-clock mr-2"></i>
-                                ${formattedTime}
-                            </div>
-                            <div class="flex items-center">
-                                <i class="fas fa-map-marker-alt mr-2"></i>
-                                ${escapeHtml(event.location)}
-                            </div>
-                            <div class="flex items-center">
-                                <i class="fas fa-users mr-2"></i>
-                                ${event.rsvp_count || 0}${event.capacity ? `/${event.capacity}` : ''} attending
-                            </div>
-                        </div>
+            <div class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all border border-gray-100 flex flex-col h-full">
+                <div class="flex justify-between items-start mb-2">
+                    <div class="flex items-center gap-2">
+                        ${badge}
+                        <span class="text-xs text-gray-400">#${event.id}</span>
+                    </div>
+                    <div class="flex space-x-1">
+                        <button onclick="viewEvent(${event.id})" title="View" class="p-2 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 transition"><i class="fas fa-eye"></i></button>
+${window.isAdmin ? `
+  <button onclick="editEvent(${event.id})" title="Edit" class="p-2 rounded-full bg-green-50 hover:bg-green-100 text-green-600 transition"><i class="fas fa-edit"></i></button>
+  <button onclick="deleteEvent(${event.id})" title="Delete" class="p-2 rounded-full bg-red-50 hover:bg-red-100 text-red-600 transition"><i class="fas fa-trash"></i></button>
+` : ''}
+${window.isMember ? `
+  <button onclick="rsvpEvent(${event.id})" title="RSVP" class="p-2 rounded-full bg-green-50 hover:bg-green-100 text-green-600 transition" ${event.user_rsvp_status === 'attending' ? 'disabled' : ''}><i class="fas fa-check"></i></button>
+  <button onclick="cancelRsvpEvent(${event.id})" title="Cancel RSVP" class="p-2 rounded-full bg-yellow-50 hover:bg-yellow-100 text-yellow-600 transition" ${event.user_rsvp_status !== 'attending' ? 'disabled' : ''}><i class="fas fa-times"></i></button>
+` : ''}
                     </div>
                 </div>
-                <div class="flex justify-end space-x-2">
-                    <button onclick="viewEvent(${event.id})" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">
-                        <i class="fas fa-eye mr-1"></i> View
-                    </button>
-                    <button onclick="editEvent(${event.id})" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm">
-                        <i class="fas fa-edit mr-1"></i> Edit
-                    </button>
-                    <button onclick="deleteEvent(${event.id})" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm">
-                        <i class="fas fa-trash mr-1"></i> Delete
-                    </button>
+                <div class="flex-1 flex flex-col">
+                    <h3 class="text-lg md:text-xl font-bold text-gray-900 mb-1">${escapeHtml(event.title)}</h3>
+                    <p class="text-gray-600 mb-3 line-clamp-3 min-h-[60px]">${escapeHtml(event.description)}</p>
+                    <div class="flex flex-wrap gap-4 text-sm text-gray-500 mb-2">
+                        <div class="flex items-center">
+                            <i class="fas fa-calendar mr-2"></i>
+                            ${formattedDate}
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-clock mr-2"></i>
+                            ${formattedTime}
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-map-marker-alt mr-2"></i>
+                            ${escapeHtml(event.location)}
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-users mr-2"></i>
+                            ${event.rsvp_count || 0}${event.capacity ? `/${event.capacity}` : ''} attending
+                        </div>
+                    </div>
+                    <div class="mt-auto flex flex-wrap gap-2">
+                        ${event.capacity ? `<span class="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">Capacity: ${event.capacity}</span>` : ''}
+                        <span class="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">Event ID: ${event.id}</span>
+                    </div>
                 </div>
             </div>
         `;
     }).join('');
+    eventsHtml += '</div>';
 
     container.innerHTML = eventsHtml;
 }
@@ -309,10 +391,11 @@ function openCreateEventModal() {
 async function editEvent(eventId) {
     try {
         const response = await fetch(`${API_BASE}/events/${eventId}`, {
+            method: 'GET',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 'Content-Type': 'application/json'
-            }
+            },
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -346,7 +429,7 @@ async function editEvent(eventId) {
         }
     } catch (error) {
         console.error('Error loading event for editing:', error);
-        showMessage('Failed to load event details', 'error');
+        showToast('Failed to load event details', 'error');
     }
 }
 
@@ -354,10 +437,11 @@ async function editEvent(eventId) {
 async function viewEvent(eventId) {
     try {
         const response = await fetch(`${API_BASE}/events/${eventId}`, {
+            method: 'GET',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 'Content-Type': 'application/json'
-            }
+            },
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -409,7 +493,7 @@ async function viewEvent(eventId) {
         }
     } catch (error) {
         console.error('Error loading event details:', error);
-        showMessage('Failed to load event details', 'error');
+        showToast('Failed to load event details', 'error');
     }
 }
 
@@ -423,9 +507,9 @@ async function deleteEvent(eventId) {
         const response = await fetch(`${API_BASE}/events/${eventId}`, {
             method: 'DELETE',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 'Content-Type': 'application/json'
-            }
+            },
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -434,14 +518,14 @@ async function deleteEvent(eventId) {
 
         const data = await response.json();
         if (data.success) {
-            showMessage('Event deleted successfully', 'success');
+            showToast('Event deleted successfully', 'success');
             await loadEvents(); // Reload events
         } else {
             throw new Error(data.message || 'Failed to delete event');
         }
     } catch (error) {
         console.error('Error deleting event:', error);
-        showMessage('Failed to delete event', 'error');
+        showToast('Failed to delete event', 'error');
     }
 }
 
@@ -470,9 +554,9 @@ async function handleEventSubmit(e) {
         const response = await fetch(`${API_BASE}/events`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 'Content-Type': 'application/json'
             },
+            credentials: 'include',
             body: JSON.stringify(eventData)
         });
 
@@ -483,7 +567,7 @@ async function handleEventSubmit(e) {
         const data = await response.json();
 
         if (data.success) {
-            showMessage('Event created successfully!', 'success');
+            showToast('Event created successfully!', 'success');
             closeModals();
             form.reset();
             await loadEvents(); // Reload events
@@ -492,7 +576,7 @@ async function handleEventSubmit(e) {
         }
     } catch (error) {
         console.error('Error saving event:', error);
-        showMessage('Failed to create event. Please try again.', 'error');
+        showToast('Failed to create event. Please try again.', 'error');
     } finally {
         submitButton.disabled = false;
         submitButton.innerHTML = '<i class="fas fa-save mr-2"></i>Create Event';
@@ -523,9 +607,9 @@ async function handleEditEventSubmit(e) {
         const response = await fetch(`${API_BASE}/events/${eventId}`, {
             method: 'PUT',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 'Content-Type': 'application/json'
             },
+            credentials: 'include',
             body: JSON.stringify(eventData)
         });
 
@@ -536,7 +620,7 @@ async function handleEditEventSubmit(e) {
         const data = await response.json();
 
         if (data.success) {
-            showMessage('Event updated successfully!', 'success');
+            showToast('Event updated successfully!', 'success');
             closeModals();
             await loadEvents(); // Reload events
         } else {
@@ -544,7 +628,7 @@ async function handleEditEventSubmit(e) {
         }
     } catch (error) {
         console.error('Error updating event:', error);
-        showMessage('Failed to update event. Please try again.', 'error');
+        showToast('Failed to update event. Please try again.', 'error');
     } finally {
         submitButton.disabled = false;
         submitButton.innerHTML = '<i class="fas fa-save mr-2"></i>Update Event';
@@ -558,11 +642,62 @@ function closeModals() {
     });
 }
 
+// RSVP to an event (for members)
+async function rsvpEvent(eventId) {
+    try {
+        const response = await fetch(`${API_BASE}/events/${eventId}/rsvp`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({ status: 'attending' })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || 'Failed to RSVP');
+        showToast('RSVP successful!', 'success');
+        await loadEvents();
+    } catch (error) {
+        showToast(error.message || 'Failed to RSVP', 'error');
+    }
+}
+
+// Cancel RSVP to an event (for members)
+async function cancelRsvpEvent(eventId) {
+    try {
+        const response = await fetch(`${API_BASE}/events/${eventId}/rsvp`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({ status: 'cancelled' })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || 'Failed to cancel RSVP');
+        showToast('RSVP cancelled.', 'success');
+        await loadEvents();
+    } catch (error) {
+        showToast(error.message || 'Failed to cancel RSVP', 'error');
+    }
+}
+
 // Utility function to escape HTML
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Toast notification helper (admin style)
+function showToast(message, type = 'info') {
+    const container = document.getElementById('notification-container');
+    const color = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-gray-700';
+    const toast = document.createElement('div');
+    toast.className = `${color} text-white px-4 py-2 rounded shadow mb-2 animate-fade-in`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => { toast.remove(); }, 2500);
 }
 
 // Show message function

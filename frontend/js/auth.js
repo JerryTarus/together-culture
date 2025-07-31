@@ -96,12 +96,11 @@ async function handleLogin(e) {
         });
 
         console.log('Response status:', res.status); // Debug log
+        const data = await res.json();
 
         if (!res.ok) {
             let errorMessage = 'Login failed. Please try again.';
             try {
-                const data = await res.json();
-                console.log('Error response data:', data); // Debug log
                 if (data.message) {
                     errorMessage = data.message;
                 }
@@ -155,6 +154,21 @@ async function handleLogin(e) {
         showErrorMessage(error.message || 'Network error. Please try again.');
         loginButton.disabled = false;
         loginButton.textContent = 'Log In';
+    }
+}
+
+function clearMessages() {
+    // Hide error message div if present
+    const errorDiv = document.getElementById('error-message');
+    if (errorDiv) {
+        errorDiv.textContent = '';
+        errorDiv.classList.add('hidden');
+    }
+    // Optionally clear register message div
+    const registerDiv = document.getElementById('message-div');
+    if (registerDiv) {
+        registerDiv.textContent = '';
+        registerDiv.classList.add('hidden');
     }
 }
 

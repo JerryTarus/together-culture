@@ -49,6 +49,22 @@ router.get('/', protect, async (req, res) => {
         queryParams.push(limit, offset);
         const [events] = await db.query(eventsQuery, queryParams);
 
+        // Fetch RSVP status for current user for all events in one query
+        const eventIds = events.map(e => e.id);
+        let userRsvps = [];
+        if (eventIds.length > 0) {
+            const [userRsvpsResult] = await db.query(
+                `SELECT event_id, status FROM event_rsvps WHERE user_id = ? AND event_id IN (${eventIds.map(() => '?').join(',')})`,
+                [req.user.id, ...eventIds]
+            );
+            userRsvps = userRsvpsResult;
+        }
+        // Attach RSVP status to each event
+        events.forEach(event => {
+            const rsvp = userRsvps.find(r => r.event_id === event.id);
+            event.user_rsvp_status = rsvp ? rsvp.status : null;
+        });
+
         res.json({
             success: true,
             data: events,

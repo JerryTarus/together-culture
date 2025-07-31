@@ -1,5 +1,9 @@
 // frontend/js/member.js
 document.addEventListener('DOMContentLoaded', async () => {
+    // Prevent duplicate initialization
+    if (window._memberDashboardInitialized) return;
+    window._memberDashboardInitialized = true;
+
     // Selectors for elements
     const userNameEl = document.getElementById('user-name');
     const profileNameEl = document.getElementById('profile-name');
@@ -15,6 +19,95 @@ document.addEventListener('DOMContentLoaded', async () => {
     const helpBtn = document.getElementById('help-btn');
 
     let currentUser = null;
+
+    // Main member dashboard loader
+    async function loadMemberDashboard() {
+        try {
+            // Fetch current user info (auth + role)
+            const response = await fetch(CONFIG.apiUrl('api/users/me'), {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                showToast('Session expired. Please log in again.', 'error');
+                setTimeout(() => window.location.href = './login.html', 1500);
+                return;
+            }
+
+            // Accept both {user: {...}} and {...}
+            const data = await response.json();
+            currentUser = data.user || data;
+
+            // If admin, redirect
+            if (currentUser.role === 'admin') {
+                window.location.href = './admin_dashboard.html';
+                return;
+            }
+
+            const fullName = currentUser.full_name || currentUser.name || 'Member';
+            const email = currentUser.email || '';
+            const status = currentUser.status || 'approved';
+            const joined = currentUser.created_at ? new Date(currentUser.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+
+            // If member is not approved, show message and stop. Do NOT redirect again, do NOT load dashboard.
+            if (currentUser.role !== 'admin' && status !== 'approved') {
+                showToast(
+                    status === 'pending'
+                        ? 'Your account is pending admin approval. You will be able to log in once approved.'
+                        : 'Your account has been rejected or disabled. Please contact support.',
+                    status === 'pending' ? 'warning' : 'error',
+                    6000
+                );
+                // Hide loader, keep dashboard hidden
+                if (loader) loader.classList.add('hidden');
+                if (rootEl) rootEl.classList.add('hidden');
+                return;
+            }
+
+            // Only load dashboard if approved
+            if (status === 'approved') {
+                if (userNameEl) userNameEl.textContent = fullName;
+                if (profileNameEl) profileNameEl.textContent = fullName;
+                if (profileEmailEl) profileEmailEl.textContent = email;
+                if (profileStatusEl) profileStatusEl.textContent = status;
+                if (profileJoinedEl) profileJoinedEl.textContent = joined;
+
+                // Set avatar
+                const profileAvatar = document.getElementById('profile-avatar');
+                if (profileAvatar) profileAvatar.textContent = fullName.charAt(0).toUpperCase();
+
+                // Set status color
+                if (profileStatusEl) {
+                    profileStatusEl.className = `capitalize font-semibold ${status === 'approved' ? 'text-green-600' : status === 'pending' ? 'text-yellow-600' : 'text-red-600'}`;
+                }
+
+                // Show pending banner if needed
+                if (pendingBanner && status === 'pending') {
+                    pendingBanner.classList.remove('hidden');
+                }
+
+                await Promise.all([
+                    loadDashboardStats(),
+                    loadUpcomingEvents(),
+                    loadRecentActivity()
+                ]);
+
+                // Hide loader, show dashboard
+                if (loader) loader.classList.add('hidden');
+                if (rootEl) rootEl.classList.remove('hidden');
+            }
+
+        } catch (error) {
+            console.error('Error loading member dashboard:', error);
+            showToast('Could not load dashboard. Please log in again.', 'error');
+            setTimeout(() => window.location.href = './login.html', 1500);
+        }
+    }
+
+    // Only call loadMemberDashboard() on page load
+    await loadMemberDashboard();
 
     // Toast notification utility
     function showToast(message, type = 'info', duration = 3000) {
@@ -116,19 +209,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Load dashboard statistics with proper error handling
     async function loadDashboardStats() {
         try {
-            // Fetch all stats in parallel with fallback
+            // Fetch stats in parallel
             const statsPromises = [
-                fetchWithFallback('api/events/attended', { count: 0 }),
-                fetchWithFallback('api/messages/count', { count: 0 }),
+                fetchWithFallback('api/events/attended', { count: 0, events: [] }),
+                fetchWithFallback('api/users/count', { count: 0 }),
                 fetchWithFallback('api/resources/count', { count: 0 })
             ];
 
-            const [eventsAttended, messagesCount, resourcesCount] = await Promise.all(statsPromises);
+            const [eventsAttended, membersCount, resourcesCount] = await Promise.all(statsPromises);
 
-            // Update stats with animation
-            animateCountUp('events-attended', eventsAttended.count || 0);
-            animateCountUp('messages-count', messagesCount.count || 0);
+            // Events attended card
+            const attendedCount = eventsAttended.count || 0;
+            animateCountUp('events-attended', attendedCount);
+            const attendedEmpty = document.getElementById('events-attended-empty');
+            if (attendedEmpty) attendedEmpty.classList.toggle('hidden', attendedCount > 0);
+
+            // Community members card
+            animateCountUp('total-members', membersCount.count || 0);
+
+            // Resources downloaded (optional, keep for now)
             animateCountUp('resources-count', resourcesCount.count || 0);
+
+            // Optionally, set up polling for real-time member count
+            if (!window._memberCountPolling) {
+                window._memberCountPolling = setInterval(async () => {
+                    const updated = await fetchWithFallback('api/users/count', { count: 0 });
+                    animateCountUp('total-members', updated.count || 0);
+                }, 10000); // Poll every 10s
+            }
 
         } catch (error) {
             console.error('Error loading dashboard stats:', error);
@@ -175,7 +283,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             const res = await fetch(CONFIG.apiUrl('api/events/upcoming'), { credentials: 'include' });
             const events = res.ok ? await res.json() : [];
 
-            const container = document.getElementById('upcoming-events');
+            // FIX: Use the correct container id from member_dashboard.html
+        const container = document.getElementById('upcoming-events-list');
+        if (!container) {
+            console.warn("Upcoming events container not found: #upcoming-events-list");
+            return;
+        }
 
             if (events.length === 0) {
                 container.innerHTML = `

@@ -5,6 +5,13 @@ A comprehensive community management platform built with Node.js/Express backend
 
 ## 🚀 Features
 
+### 🌐 Modern Architecture
+- **MySQL-only backend**: Fully reverted to MySQL, no PostgreSQL dependencies or logic
+- **Cookie/session-based authentication**: Secure, robust session management for all flows
+- **Defensive coding & error handling**: Prevents crashes and infinite loops
+- **Modern, responsive UI**: Personalized dashboards for admins and members
+
+
 ### 👥 User Management
 - **User Registration & Authentication**: Secure signup/login with JWT tokens
 - **Role-Based Access Control**: Admin and Member roles with different permissions
@@ -17,7 +24,14 @@ A comprehensive community management platform built with Node.js/Express backend
 - **Real-time Statistics**: Dashboard with live data updates
 - **Activity Monitoring**: Track recent user activities and system events
 
-### 👤 Member Dashboard  
+### 👤 Member Dashboard
+- **Personal Overview**: View account status, recent activities, and real-time community stats
+- **Events Attended**: See and update RSVP status, always up-to-date
+- **Community Members**: Real-time member count
+- **Resource Upload**: Members can upload files; uploads are marked pending until admin approval
+- **Quick Actions**: Easy navigation to messages, events, and resources
+- **Modern, visually appealing design**: Personalized for each member
+
 - **Personal Overview**: View account status and recent activities
 - **Quick Navigation**: Easy access to all platform features
 - **Status Tracking**: See approval status and account information
@@ -30,15 +44,18 @@ A comprehensive community management platform built with Node.js/Express backend
 
 ### 📚 Resource Library
 - **File Upload/Download**: Share documents, images, and other resources
+- **Member Uploads with Approval**: Member uploads are marked as 'pending' and require admin approval before being visible to others
+- **Status Badges**: Members see the status (pending/approved/rejected) of their own uploads
 - **Categorization**: Organize resources by type and category
 - **Search & Filter**: Find resources quickly with advanced filtering
 - **Access Control**: Admin-controlled resource visibility
 
 ### 📅 Events Management
-- **Event Creation**: Create and manage community events
-- **RSVP System**: Members can register for events
+- **Event Creation**: Admins create and manage events
+- **RSVP System**: Members can RSVP or cancel RSVP for events, and see their status on the dashboard
 - **Event Calendar**: View upcoming and past events
 - **Capacity Management**: Set and track event attendance limits
+- **Role-based Access**: Members cannot edit or delete events, only RSVP/cancel
 
 ## 🛠️ Technology Stack
 
@@ -71,6 +88,11 @@ A comprehensive community management platform built with Node.js/Express backend
 
 ## ⚡ Quick Start
 
+### 📝 Member & Admin Workflows
+- **Admins**: Full dashboard, user approval, event/resource management, messaging
+- **Members**: Dashboard with real-time stats, RSVP to events, upload resources (pending approval), search and message other members
+
+
 ### 1. Clone and Setup
 ```bash
 git clone <repository-url>
@@ -88,6 +110,8 @@ cp .env.example .env
 ```
 
 ### 3. Database Setup
+> **Note:** The backend is MySQL-only. Ensure your MySQL server is running and accessible. No PostgreSQL support.
+
 ```bash
 # Create database and tables
 node setup-database.js
@@ -108,6 +132,11 @@ npm start
 ### 5. Access Application
 - **Frontend**: http://localhost:5000
 - **API**: http://localhost:5000/api
+
+### 🛡️ Session & Cookie Troubleshooting
+- If login succeeds but you are redirected to login repeatedly, clear cookies and ensure your browser allows third-party cookies.
+- Only 'approved' members can access member dashboard and features. If you are stuck in a loop, ask an admin to approve your account in the dashboard.
+- Admins do not require approval, but must have the correct role in the database.
 
 ## 🔑 Default Admin Account
 
@@ -176,9 +205,10 @@ together-culture/
 
 ### Resources
 - `GET /api/resources` - List resources with filtering
-- `POST /api/resources` - Upload new resource
+- `POST /api/resources` - Upload new resource (members: status will be pending)
 - `GET /api/resources/:id/download` - Download resource
 - `DELETE /api/resources/:id` - Delete resource (admin)
+- **Workflow:** Member uploads are visible only to the uploader and admins until approved. Admins can approve/reject uploads in the dashboard.
 
 ### Events
 - `GET /api/events` - List events
@@ -187,6 +217,9 @@ together-culture/
 - `POST /api/events/:id/rsvp` - RSVP to event
 
 ## 🗄️ Database Schema
+
+> **Best Practice:** Always use parameterized queries and never expose secrets in your code or repository. All user passwords are hashed and JWT secrets must be kept safe in your .env file.
+
 
 ### Core Tables
 - **users**: User accounts and profiles
@@ -255,7 +288,16 @@ node -e "require('./config/db').query('SELECT 1')"
 node setup-database.js --reset
 ```
 
-## 🚀 Deployment on Replit
+## 🚀 Deployment & Hosting
+
+- For local development, use Node.js and MySQL as above.
+- For cloud deployment (Heroku, DigitalOcean, Replit, etc):
+  - Set all environment variables in your cloud environment
+  - Ensure MySQL is accessible from your deployment
+  - Use secure HTTPS for production
+  - Always set a strong JWT_SECRET and DB_PASSWORD
+
+### 🚀 Deployment on Replit
 
 1. **Import Project**: Fork this repository to Replit
 2. **Set Environment Variables**: Configure in Replit Secrets:
@@ -289,6 +331,15 @@ For technical support or feature requests:
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 🏗️ Future Enhancements
+- Real-time notifications (WebSocket support)
+- Mobile app (React Native or Flutter)
+- Advanced analytics and reporting
+- Integration with external calendar and communication tools
+- Multi-language support
+- Granular user permissions
+- Email and push notification system
+- Social media and API integrations
+
 
 - Real-time notifications
 - Mobile app development

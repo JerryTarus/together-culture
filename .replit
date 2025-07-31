@@ -14,7 +14,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd backend && npm start"
+args = "./start-with-mysql.sh"
 
 [[ports]]
 localPort = 5000

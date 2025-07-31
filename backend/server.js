@@ -102,8 +102,8 @@ app.use((req, res, next) => {
 });
 // --- END OF FIX ---
 
-app.listen(PORT, () => {
-    console.log(`🚀 Secure MPA Server is fully operational on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Secure MPA Server is fully operational on http://0.0.0.0:${PORT}`);
     console.log(`📂 Serving frontend from: ${path.join(__dirname, '..', 'frontend')}`);
     console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
 });

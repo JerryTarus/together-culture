@@ -1,188 +1,126 @@
-// frontend/js/events.js
-
+// Constants and configuration
+const API_BASE = '/api';
 let currentPage = 1;
-let currentLimit = 10;
+let totalPages = 1;
 let currentSearch = '';
 let currentStatus = 'all';
-let currentSortBy = 'date';
-let currentSortOrder = 'DESC';
-let isAdmin = false;
-let editingEventId = null;
+let isLoading = false;
 
-// Initialize page
+// Initialize the page
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('Events page loaded');
 
-    try {
-        await checkAuth();
-        await loadEvents();
-        initializeEventListeners();
-    } catch (error) {
-        console.error('Error initializing events page:', error);
-        showMessage('Failed to initialize page', 'error');
+    // Check authentication and role
+    if (!checkAuth() || !checkAdminRole()) {
+        return;
     }
+
+    // Initialize event listeners
+    initializeEventListeners();
+
+    // Load events
+    await loadEvents();
 });
 
-// Check authentication and user role
-async function checkAuth() {
-    try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/api/auth/me`, {
-            method: 'GET',
-            credentials: 'include'
-        });
-
-        if (!response.ok) {
-            if (response.status === 401) {
-                window.location.href = '/login.html';
-                return;
-            }
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('User authenticated:', data.email);
-
-        isAdmin = data.role === 'admin';
-        updateUserInfo(data);
-
-        // Show/hide admin-only elements
-        const createBtn = document.getElementById('createEventBtn');
-        if (createBtn) {
-            createBtn.style.display = isAdmin ? 'flex' : 'none';
-        }
-
-    } catch (error) {
-        console.error('Authentication error:', error);
+// Check authentication
+function checkAuth() {
+    const token = localStorage.getItem('token');
+    if (!token) {
         window.location.href = '/login.html';
+        return false;
     }
+    return true;
 }
 
-// Update user info in header
-function updateUserInfo(user) {
-    const userEmailEl = document.getElementById('userEmail');
-    const userRoleEl = document.getElementById('userRole');
-
-    if (userEmailEl) userEmailEl.textContent = user.email;
-    if (userRoleEl) userRoleEl.textContent = user.role;
+// Check admin role
+function checkAdminRole() {
+    const userRole = localStorage.getItem('userRole');
+    if (userRole !== 'admin') {
+        showMessage('Access denied. Admin privileges required.', 'error');
+        setTimeout(() => {
+            window.location.href = '/member_dashboard.html';
+        }, 2000);
+        return false;
+    }
+    return true;
 }
 
-// Initialize event listeners
+// Initialize all event listeners
 function initializeEventListeners() {
-    // Sidebar toggle
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    const sidebar = document.getElementById('sidebar');
-
-    if (sidebarToggle && sidebar) {
-        sidebarToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('-translate-x-full');
-        });
+    // Create event form
+    const createEventForm = document.getElementById('createEventForm');
+    if (createEventForm) {
+        createEventForm.addEventListener('submit', handleEventSubmit);
     }
 
-    // Logout
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', logout);
+    // Edit event form
+    const editEventForm = document.getElementById('editEventForm');
+    if (editEventForm) {
+        editEventForm.addEventListener('submit', handleEditEventSubmit);
     }
 
-    // Search and filters
+    // Search and filter
     const searchInput = document.getElementById('searchInput');
-    const statusFilter = document.getElementById('statusFilter');
-    const sortBy = document.getElementById('sortBy');
-    const sortOrder = document.getElementById('sortOrder');
-
     if (searchInput) {
         let searchTimeout;
-        searchInput.addEventListener('input', function() {
+        searchInput.addEventListener('input', (e) => {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
-                currentSearch = this.value;
+                currentSearch = e.target.value;
                 currentPage = 1;
                 loadEvents();
-            }, 300);
+            }, 500);
         });
     }
 
+    const statusFilter = document.getElementById('statusFilter');
     if (statusFilter) {
-        statusFilter.addEventListener('change', function() {
-            currentStatus = this.value;
+        statusFilter.addEventListener('change', (e) => {
+            currentStatus = e.target.value;
             currentPage = 1;
             loadEvents();
         });
     }
 
-    if (sortBy) {
-        sortBy.addEventListener('change', function() {
-            currentSortBy = this.value;
-            currentPage = 1;
-            loadEvents();
-        });
-    }
+    // Modal close buttons
+    document.querySelectorAll('[data-modal-close]').forEach(button => {
+        button.addEventListener('click', closeModals);
+    });
 
-    if (sortOrder) {
-        sortOrder.addEventListener('change', function() {
-            currentSortOrder = this.value;
-            currentPage = 1;
-            loadEvents();
-        });
-    }
-
-    // Modal controls
+    // Create event button
     const createEventBtn = document.getElementById('createEventBtn');
-    const eventModal = document.getElementById('eventModal');
-    const cancelEventBtn = document.getElementById('cancelEventBtn');
-    const eventForm = document.getElementById('eventForm');
-    const closeDetailsBtn = document.getElementById('closeDetailsBtn');
-    const eventDetailsModal = document.getElementById('eventDetailsModal');
-
     if (createEventBtn) {
-        createEventBtn.addEventListener('click', openCreateEventModal);
-    }
-
-    if (cancelEventBtn) {
-        cancelEventBtn.addEventListener('click', closeEventModal);
-    }
-
-    if (eventForm) {
-        eventForm.addEventListener('submit', handleEventSubmit);
-    }
-
-    if (closeDetailsBtn) {
-        closeDetailsBtn.addEventListener('click', closeEventDetailsModal);
-    }
-
-    // Close modals when clicking outside
-    if (eventModal) {
-        eventModal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeEventModal();
-            }
-        });
-    }
-
-    if (eventDetailsModal) {
-        eventDetailsModal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeEventDetailsModal();
-            }
+        createEventBtn.addEventListener('click', () => {
+            openCreateEventModal();
         });
     }
 }
 
-// Load events from API
+// Load events from the API
 async function loadEvents() {
+    if (isLoading) return;
+
     try {
+        isLoading = true;
+        showLoadingState();
+
         const params = new URLSearchParams({
             page: currentPage,
-            limit: currentLimit,
+            limit: 10,
             search: currentSearch,
             status: currentStatus,
-            sortBy: currentSortBy,
-            sortOrder: currentSortOrder
+            sortBy: 'event_date',
+            sortOrder: 'DESC'
         });
 
-        const response = await fetch(`${CONFIG.API_BASE_URL}/api/events?${params}`, {
+        console.log('Fetching events with params:', params.toString());
+
+        const response = await fetch(`${API_BASE}/events?${params}`, {
             method: 'GET',
-            credentials: 'include'
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            }
         });
 
         if (!response.ok) {
@@ -190,28 +128,20 @@ async function loadEvents() {
         }
 
         const data = await response.json();
+        console.log('Events loaded:', data);
 
         if (data.success) {
             displayEvents(data.data);
-            displayPagination(data.pagination);
+            updatePagination(data.pagination);
         } else {
             throw new Error(data.message || 'Failed to load events');
         }
-
     } catch (error) {
         console.error('Error loading events:', error);
+        showErrorState();
         showMessage('Failed to load events. Please try again.', 'error');
-
-        const container = document.getElementById('eventsContainer');
-        if (container) {
-            container.innerHTML = `
-                <div class="text-center py-8">
-                    <i class="fas fa-exclamation-circle text-3xl text-red-400 mb-4"></i>
-                    <p class="text-gray-600">Failed to load events. Please try again.</p>
-                    <button onclick="loadEvents()" class="mt-2 text-blue-600 hover:text-blue-700">Retry</button>
-                </div>
-            `;
-        }
+    } finally {
+        isLoading = false;
     }
 }
 
@@ -220,22 +150,24 @@ function displayEvents(events) {
     const container = document.getElementById('eventsContainer');
     if (!container) return;
 
-    if (events.length === 0) {
+    if (!events || events.length === 0) {
         container.innerHTML = `
             <div class="text-center py-8">
-                <i class="fas fa-calendar-alt text-3xl text-gray-400 mb-4"></i>
-                <p class="text-gray-600">No events found</p>
+                <i class="fas fa-calendar-times text-3xl text-gray-400 mb-4"></i>
+                <p class="text-gray-600">No events found.</p>
+                <button onclick="openCreateEventModal()" class="mt-4 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
+                    Create First Event
+                </button>
             </div>
         `;
         return;
     }
 
-    const eventsHTML = events.map(event => {
-        const eventDate = new Date(event.date);
+    const eventsHtml = events.map(event => {
+        const eventDate = new Date(event.event_date);
         const formattedDate = eventDate.toLocaleDateString('en-US', {
-            weekday: 'short',
             year: 'numeric',
-            month: 'short',
+            month: 'long',
             day: 'numeric'
         });
         const formattedTime = eventDate.toLocaleTimeString('en-US', {
@@ -243,288 +175,241 @@ function displayEvents(events) {
             minute: '2-digit'
         });
 
-        const statusColor = {
-            'active': 'bg-green-100 text-green-800',
-            'cancelled': 'bg-red-100 text-red-800',
-            'pending': 'bg-yellow-100 text-yellow-800'
-        };
-
-        const isPast = event.is_past;
-        const spotsRemaining = event.spots_remaining;
-        const capacity = event.capacity;
-
         return `
-            <div class="border border-gray-200 rounded-lg p-6 hover:shadow-sm transition-shadow ${isPast ? 'opacity-75' : ''}" data-event-id="${event.id}">
+            <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
                 <div class="flex justify-between items-start mb-4">
                     <div class="flex-1">
-                        <h4 class="text-lg font-semibold text-gray-900 mb-2">${escapeHtml(event.title)}</h4>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">${escapeHtml(event.title)}</h3>
                         <p class="text-gray-600 mb-3">${escapeHtml(event.description)}</p>
-
-                        <div class="flex flex-wrap gap-4 text-sm text-gray-600">
+                        <div class="flex flex-wrap gap-4 text-sm text-gray-500">
                             <div class="flex items-center">
-                                <i class="fas fa-calendar mr-2 text-gray-400"></i>
-                                <span>${formattedDate} at ${formattedTime}</span>
+                                <i class="fas fa-calendar mr-2"></i>
+                                ${formattedDate}
                             </div>
                             <div class="flex items-center">
-                                <i class="fas fa-map-marker-alt mr-2 text-gray-400"></i>
-                                <span>${escapeHtml(event.location)}</span>
+                                <i class="fas fa-clock mr-2"></i>
+                                ${formattedTime}
                             </div>
-                            ${capacity ? `
-                                <div class="flex items-center">
-                                    <i class="fas fa-users mr-2 text-gray-400"></i>
-                                    <span>${event.attending_count}/${capacity} attending</span>
-                                    ${spotsRemaining !== null ? `<span class="ml-1">(${spotsRemaining} spots left)</span>` : ''}
-                                </div>
-                            ` : `
-                                <div class="flex items-center">
-                                    <i class="fas fa-users mr-2 text-gray-400"></i>
-                                    <span>${event.attending_count} attending</span>
-                                </div>
-                            `}
+                            <div class="flex items-center">
+                                <i class="fas fa-map-marker-alt mr-2"></i>
+                                ${escapeHtml(event.location)}
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-users mr-2"></i>
+                                ${event.rsvp_count || 0}${event.capacity ? `/${event.capacity}` : ''} attending
+                            </div>
                         </div>
                     </div>
-
-                    <div class="flex items-center space-x-2 ml-4">
-                        <span class="px-2 py-1 text-xs font-medium rounded-full ${statusColor[event.status] || 'bg-gray-100 text-gray-800'}">
-                            ${event.status}
-                        </span>
-                        ${isPast ? '<span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">Past</span>' : ''}
-                    </div>
                 </div>
-
-                <div class="flex justify-between items-center">
-                    <button onclick="viewEventDetails(${event.id})" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                        View Details
+                <div class="flex justify-end space-x-2">
+                    <button onclick="viewEvent(${event.id})" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">
+                        <i class="fas fa-eye mr-1"></i> View
                     </button>
-
-                    <div class="flex space-x-2">
-                        ${!isPast && !isAdmin ? `
-                            <button onclick="handleRSVP(${event.id})" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
-                                RSVP
-                            </button>
-                        ` : ''}
-
-                        ${isAdmin ? `
-                            <button onclick="editEvent(${event.id})" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm transition-colors">
-                                Edit
-                            </button>
-                            <button onclick="deleteEvent(${event.id})" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition-colors">
-                                Delete
-                            </button>
-                        ` : ''}
-                    </div>
+                    <button onclick="editEvent(${event.id})" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm">
+                        <i class="fas fa-edit mr-1"></i> Edit
+                    </button>
+                    <button onclick="deleteEvent(${event.id})" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm">
+                        <i class="fas fa-trash mr-1"></i> Delete
+                    </button>
                 </div>
             </div>
         `;
     }).join('');
 
-    container.innerHTML = eventsHTML;
+    container.innerHTML = eventsHtml;
 }
 
-// Display pagination
-function displayPagination(pagination) {
-    const container = document.getElementById('paginationContainer');
-    if (!container) return;
-
-    const { page, totalPages, total } = pagination;
-
-    if (totalPages <= 1) {
+// Show loading state
+function showLoadingState() {
+    const container = document.getElementById('eventsContainer');
+    if (container) {
         container.innerHTML = `
-            <div class="text-sm text-gray-600">
-                Showing ${total} event${total !== 1 ? 's' : ''}
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-3xl text-blue-500 mb-4"></i>
+                <p class="text-gray-600">Loading events...</p>
             </div>
         `;
-        return;
     }
+}
 
-    let paginationHTML = `
-        <div class="flex items-center justify-between">
-            <div class="text-sm text-gray-600">
-                Showing page ${page} of ${totalPages} (${total} total events)
+// Show error state
+function showErrorState() {
+    const container = document.getElementById('eventsContainer');
+    if (container) {
+        container.innerHTML = `
+            <div class="text-center py-8">
+                <i class="fas fa-exclamation-circle text-3xl text-red-400 mb-4"></i>
+                <p class="text-gray-600">Failed to load events. Please try again.</p>
+                <button onclick="loadEvents()" class="mt-2 text-blue-600 hover:text-blue-700">Retry</button>
             </div>
-            <div class="flex space-x-2">
-    `;
+        `;
+    }
+}
+
+// Update pagination
+function updatePagination(pagination) {
+    const paginationContainer = document.getElementById('pagination');
+    if (!paginationContainer || !pagination) return;
+
+    totalPages = pagination.pages;
+    currentPage = pagination.page;
+
+    let paginationHtml = '<div class="flex justify-center items-center space-x-2 mt-6">';
 
     // Previous button
-    if (page > 1) {
-        paginationHTML += `
-            <button onclick="changePage(${page - 1})" class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+    if (currentPage > 1) {
+        paginationHtml += `
+            <button onclick="changePage(${currentPage - 1})" class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                 Previous
             </button>
         `;
     }
 
     // Page numbers
-    const startPage = Math.max(1, page - 2);
-    const endPage = Math.min(totalPages, page + 2);
-
-    if (startPage > 1) {
-        paginationHTML += `
-            <button onclick="changePage(1)" class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">1</button>
-        `;
-        if (startPage > 2) {
-            paginationHTML += `<span class="px-2 text-gray-500">...</span>`;
-        }
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-        paginationHTML += `
-            <button onclick="changePage(${i})" class="px-3 py-1 text-sm ${i === page ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'} rounded-lg transition-colors">
+    for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+        const isActive = i === currentPage;
+        paginationHtml += `
+            <button onclick="changePage(${i})" class="px-3 py-2 text-sm rounded-md ${isActive ? 'bg-green-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'}">
                 ${i}
             </button>
         `;
     }
 
-    if (endPage < totalPages) {
-        if (endPage < totalPages - 1) {
-            paginationHTML += `<span class="px-2 text-gray-500">...</span>`;
-        }
-        paginationHTML += `
-            <button onclick="changePage(${totalPages})" class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">${totalPages}</button>
-        `;
-    }
-
     // Next button
-    if (page < totalPages) {
-        paginationHTML += `
-            <button onclick="changePage(${page + 1})" class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+    if (currentPage < totalPages) {
+        paginationHtml += `
+            <button onclick="changePage(${currentPage + 1})" class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                 Next
             </button>
         `;
     }
 
-    paginationHTML += `
-            </div>
-        </div>
-    `;
-
-    container.innerHTML = paginationHTML;
+    paginationHtml += '</div>';
+    paginationContainer.innerHTML = paginationHtml;
 }
 
 // Change page
 function changePage(page) {
-    currentPage = page;
-    loadEvents();
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+        currentPage = page;
+        loadEvents();
+    }
 }
 
 // Open create event modal
 function openCreateEventModal() {
-    editingEventId = null;
-    document.getElementById('modalTitle').textContent = 'Create New Event';
-    document.getElementById('eventForm').reset();
-
-    // Set default date to today
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('eventDate').value = today;
-
-    document.getElementById('eventModal').classList.remove('hidden');
+    const modal = document.getElementById('createEventModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        document.getElementById('createEventForm').reset();
+    }
 }
 
 // Open edit event modal
 async function editEvent(eventId) {
     try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/api/events/${eventId}`, {
-            method: 'GET',
-            credentials: 'include'
+        const response = await fetch(`${API_BASE}/events/${eventId}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            }
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error('Failed to fetch event details');
         }
 
         const data = await response.json();
-
-        if (data.success) {
-            const event = data.data;
-            editingEventId = eventId;
-
-            document.getElementById('modalTitle').textContent = 'Edit Event';
-            document.getElementById('eventTitle').value = event.title;
-            document.getElementById('eventDescription').value = event.description;
-
-            const eventDate = new Date(event.date);
-            document.getElementById('eventDate').value = eventDate.toISOString().split('T')[0];
-            document.getElementById('eventTime').value = eventDate.toTimeString().slice(0, 5);
-
-            document.getElementById('eventLocation').value = event.location;
-            document.getElementById('eventCapacity').value = event.capacity || '';
-            document.getElementById('eventStatus').value = event.status;
-
-            document.getElementById('eventModal').classList.remove('hidden');
-        } else {
-            throw new Error(data.message || 'Failed to load event');
+        if (!data.success) {
+            throw new Error(data.message || 'Failed to fetch event details');
         }
 
+        const event = data.data;
+
+        // Populate edit form
+        document.getElementById('editEventId').value = event.id;
+        document.getElementById('editTitle').value = event.title;
+        document.getElementById('editDescription').value = event.description;
+
+        // Format date for input field
+        const eventDate = new Date(event.event_date);
+        const formattedDateTime = eventDate.toISOString().slice(0, 16);
+        document.getElementById('editEventDate').value = formattedDateTime;
+
+        document.getElementById('editLocation').value = event.location;
+        document.getElementById('editCapacity').value = event.capacity || '';
+
+        // Show modal
+        const modal = document.getElementById('editEventModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+        }
     } catch (error) {
         console.error('Error loading event for editing:', error);
         showMessage('Failed to load event details', 'error');
     }
 }
 
-// Close event modal
-function closeEventModal() {
-    document.getElementById('eventModal').classList.add('hidden');
-    editingEventId = null;
-}
-
-// Handle event form submission
-async function handleEventSubmit(e) {
-    e.preventDefault();
-
-    const saveBtn = document.getElementById('saveEventBtn');
-    const originalText = saveBtn.textContent;
-    
-    // Show loading state
-    saveBtn.disabled = true;
-    saveBtn.textContent = 'Saving...';
-
-    const formData = {
-        title: document.getElementById('eventTitle').value.trim(),
-        description: document.getElementById('eventDescription').value.trim(),
-        date: document.getElementById('eventDate').value,
-        time: document.getElementById('eventTime').value,
-        location: document.getElementById('eventLocation').value.trim(),
-        capacity: document.getElementById('eventCapacity').value || null,
-        status: document.getElementById('eventStatus').value
-    };
-
+// View event details
+async function viewEvent(eventId) {
     try {
-        const url = editingEventId 
-            ? `${CONFIG.API_BASE_URL}/api/events/${editingEventId}`
-            : `${CONFIG.API_BASE_URL}/api/events`;
-
-        const method = editingEventId ? 'PUT' : 'POST';
-
-        const response = await fetch(url, {
-            method: method,
+        const response = await fetch(`${API_BASE}/events/${eventId}`, {
             headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 'Content-Type': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify(formData)
+            }
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error('Failed to fetch event details');
         }
 
         const data = await response.json();
-
-        if (data.success) {
-            showMessage(editingEventId ? 'Event updated successfully!' : 'Event created successfully!', 'success');
-            closeEventModal();
-            loadEvents();
-        } else {
-            throw new Error(data.message || 'Failed to save event');
+        if (!data.success) {
+            throw new Error(data.message || 'Failed to fetch event details');
         }
 
+        const event = data.data;
+
+        // Populate view modal
+        const eventDate = new Date(event.event_date);
+        const formattedDate = eventDate.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        document.getElementById('viewEventTitle').textContent = event.title;
+        document.getElementById('viewEventDescription').textContent = event.description;
+        document.getElementById('viewEventDate').textContent = formattedDate;
+        document.getElementById('viewEventLocation').textContent = event.location;
+        document.getElementById('viewEventCapacity').textContent = event.capacity ? `${event.rsvp_count || 0}/${event.capacity}` : event.rsvp_count || 0;
+
+        // Show RSVPs if available
+        const rsvpsList = document.getElementById('viewEventRsvps');
+        if (rsvpsList && event.rsvps) {
+            if (event.rsvps.length > 0) {
+                rsvpsList.innerHTML = event.rsvps.map(rsvp => `
+                    <div class="flex justify-between items-center py-2 border-b">
+                        <span>${escapeHtml(rsvp.full_name)}</span>
+                        <span class="text-sm text-gray-500">${rsvp.status}</span>
+                    </div>
+                `).join('');
+            } else {
+                rsvpsList.innerHTML = '<p class="text-gray-500">No RSVPs yet</p>';
+            }
+        }
+
+        // Show modal
+        const modal = document.getElementById('viewEventModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+        }
     } catch (error) {
-        console.error('Error saving event:', error);
-        showMessage('Failed to save event. Please try again.', 'error');
-    } finally {
-        // Reset button state
-        saveBtn.disabled = false;
-        saveBtn.textContent = originalText;
+        console.error('Error loading event details:', error);
+        showMessage('Failed to load event details', 'error');
     }
 }
 
@@ -535,144 +420,60 @@ async function deleteEvent(eventId) {
     }
 
     try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/api/events/${eventId}`, {
+        const response = await fetch(`${API_BASE}/events/${eventId}`, {
             method: 'DELETE',
-            credentials: 'include'
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            }
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error('Failed to delete event');
         }
 
         const data = await response.json();
-
         if (data.success) {
             showMessage('Event deleted successfully', 'success');
-            loadEvents();
+            await loadEvents(); // Reload events
         } else {
             throw new Error(data.message || 'Failed to delete event');
         }
-
     } catch (error) {
         console.error('Error deleting event:', error);
-        showMessage('Failed to delete event. Please try again.', 'error');
+        showMessage('Failed to delete event', 'error');
     }
 }
 
-// View event details
-async function viewEventDetails(eventId) {
+// Handle create event form submission
+async function handleEventSubmit(e) {
+    e.preventDefault();
+
+    const form = e.target;
+    const formData = new FormData(form);
+    const submitButton = form.querySelector('button[type="submit"]');
+
     try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/api/events/${eventId}`, {
-            method: 'GET',
-            credentials: 'include'
-        });
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating...';
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        const eventData = {
+            title: formData.get('title'),
+            description: formData.get('description'),
+            event_date: formData.get('event_date'),
+            location: formData.get('location'),
+            capacity: formData.get('capacity') ? parseInt(formData.get('capacity')) : null
+        };
 
-        const data = await response.json();
+        console.log('Creating event with data:', eventData);
 
-        if (data.success) {
-            displayEventDetails(data.data);
-            document.getElementById('eventDetailsModal').classList.remove('hidden');
-        } else {
-            throw new Error(data.message || 'Failed to load event details');
-        }
-
-    } catch (error) {
-        console.error('Error loading event details:', error);
-        showMessage('Failed to load event details', 'error');
-    }
-}
-
-// Display event details in modal
-function displayEventDetails(event) {
-    const eventDate = new Date(event.date);
-    const formattedDate = eventDate.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-    const formattedTime = eventDate.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-
-    document.getElementById('detailsTitle').textContent = event.title;
-
-    const content = document.getElementById('eventDetailsContent');
-    content.innerHTML = `
-        <div class="space-y-4">
-            <div>
-                <h4 class="font-medium text-gray-900 mb-2">Description</h4>
-                <p class="text-gray-600">${escapeHtml(event.description)}</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <h4 class="font-medium text-gray-900 mb-2">Date & Time</h4>
-                    <p class="text-gray-600">${formattedDate}</p>
-                    <p class="text-gray-600">${formattedTime}</p>
-                </div>
-
-                <div>
-                    <h4 class="font-medium text-gray-900 mb-2">Location</h4>
-                    <p class="text-gray-600">${escapeHtml(event.location)}</p>
-                </div>
-
-                ${event.capacity ? `
-                    <div>
-                        <h4 class="font-medium text-gray-900 mb-2">Capacity</h4>
-                        <p class="text-gray-600">${event.attending_count}/${event.capacity} attending</p>
-                        ${event.spots_remaining !== null ? `<p class="text-sm text-gray-500">${event.spots_remaining} spots remaining</p>` : ''}
-                    </div>
-                ` : `
-                    <div>
-                        <h4 class="font-medium text-gray-900 mb-2">Attendees</h4>
-                        <p class="text-gray-600">${event.attending_count} attending</p>
-                    </div>
-                `}
-
-                <div>
-                    <h4 class="font-medium text-gray-900 mb-2">Status</h4>
-                    <span class="px-2 py-1 text-sm font-medium rounded-full ${
-                        event.status === 'active' ? 'bg-green-100 text-green-800' :
-                        event.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
-                    }">
-                        ${event.status}
-                    </span>
-                </div>
-            </div>
-
-            ${!event.is_past && !isAdmin ? `
-                <div class="pt-4 border-t border-gray-200">
-                    <button onclick="handleRSVP(${event.id})" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
-                        RSVP to Event
-                    </button>
-                </div>
-            ` : ''}
-        </div>
-    `;
-}
-
-// Close event details modal
-function closeEventDetailsModal() {
-    document.getElementById('eventDetailsModal').classList.add('hidden');
-}
-
-// Handle RSVP
-async function handleRSVP(eventId) {
-    try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/api/events/${eventId}/rsvp`, {
+        const response = await fetch(`${API_BASE}/events`, {
             method: 'POST',
             headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 'Content-Type': 'application/json'
             },
-            credentials: 'include',
-            body: JSON.stringify({ status: 'attending' })
+            body: JSON.stringify(eventData)
         });
 
         if (!response.ok) {
@@ -682,76 +483,148 @@ async function handleRSVP(eventId) {
         const data = await response.json();
 
         if (data.success) {
-            showMessage('RSVP successful!', 'success');
-            loadEvents();
-
-            // Close details modal if open
-            const detailsModal = document.getElementById('eventDetailsModal');
-            if (detailsModal && !detailsModal.classList.contains('hidden')) {
-                closeEventDetailsModal();
-            }
+            showMessage('Event created successfully!', 'success');
+            closeModals();
+            form.reset();
+            await loadEvents(); // Reload events
         } else {
-            throw new Error(data.message || 'Failed to RSVP');
+            throw new Error(data.message || 'Failed to create event');
         }
-
     } catch (error) {
-        console.error('Error submitting RSVP:', error);
-        showMessage('Failed to submit RSVP. Please try again.', 'error');
+        console.error('Error saving event:', error);
+        showMessage('Failed to create event. Please try again.', 'error');
+    } finally {
+        submitButton.disabled = false;
+        submitButton.innerHTML = '<i class="fas fa-save mr-2"></i>Create Event';
     }
 }
 
-// Logout function
-async function logout() {
+// Handle edit event form submission
+async function handleEditEventSubmit(e) {
+    e.preventDefault();
+
+    const form = e.target;
+    const formData = new FormData(form);
+    const submitButton = form.querySelector('button[type="submit"]');
+    const eventId = formData.get('eventId');
+
     try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/api/auth/logout`, {
-            method: 'POST',
-            credentials: 'include'
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Updating...';
+
+        const eventData = {
+            title: formData.get('title'),
+            description: formData.get('description'),
+            event_date: formData.get('event_date'),
+            location: formData.get('location'),
+            capacity: formData.get('capacity') ? parseInt(formData.get('capacity')) : null
+        };
+
+        const response = await fetch(`${API_BASE}/events/${eventId}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(eventData)
         });
 
-        if (response.ok) {
-            window.location.href = '/login.html';
+        if (!response.ok) {
+            throw new Error('Failed to update event');
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            showMessage('Event updated successfully!', 'success');
+            closeModals();
+            await loadEvents(); // Reload events
         } else {
-            throw new Error('Logout failed');
+            throw new Error(data.message || 'Failed to update event');
         }
     } catch (error) {
-        console.error('Logout error:', error);
-        // Force redirect even if logout request fails
-        window.location.href = '/login.html';
+        console.error('Error updating event:', error);
+        showMessage('Failed to update event. Please try again.', 'error');
+    } finally {
+        submitButton.disabled = false;
+        submitButton.innerHTML = '<i class="fas fa-save mr-2"></i>Update Event';
     }
+}
+
+// Close all modals
+function closeModals() {
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.classList.add('hidden');
+    });
+}
+
+// Utility function to escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // Show message function
-function showMessage(message, type = 'info') {
-    // Remove any existing message
+function showMessage(message, type = 'info', duration = 5000) {
+    // Remove existing messages
     const existingMessage = document.querySelector('.message-toast');
     if (existingMessage) {
         existingMessage.remove();
     }
 
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message-toast fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
-        type === 'success' ? 'bg-green-600 text-white' :
-        type === 'error' ? 'bg-red-600 text-white' :
-        'bg-blue-600 text-white'
-    }`;
-    messageDiv.textContent = message;
+    // Create message element
+    const messageEl = document.createElement('div');
+    messageEl.className = `message-toast fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-opacity duration-300`;
 
-    document.body.appendChild(messageDiv);
+    // Set colors based on type
+    let bgColor, textColor, icon;
+    switch (type) {
+        case 'success':
+            bgColor = 'bg-green-500';
+            textColor = 'text-white';
+            icon = 'fas fa-check-circle';
+            break;
+        case 'error':
+            bgColor = 'bg-red-500';
+            textColor = 'text-white';
+            icon = 'fas fa-exclamation-circle';
+            break;
+        case 'warning':
+            bgColor = 'bg-yellow-500';
+            textColor = 'text-white';
+            icon = 'fas fa-exclamation-triangle';
+            break;
+        default:
+            bgColor = 'bg-blue-500';
+            textColor = 'text-white';
+            icon = 'fas fa-info-circle';
+    }
 
-    // Remove after 5 seconds
-    setTimeout(() => {
-        if (messageDiv.parentElement) {
-            messageDiv.remove();
-        }
-    }, 5000);
-}
+    messageEl.className += ` ${bgColor} ${textColor}`;
+    messageEl.innerHTML = `
+        <div class="flex items-center">
+            <i class="${icon} mr-2"></i>
+            <span>${message}</span>
+            <button onclick="this.parentElement.parentElement.remove()" class="ml-4 hover:opacity-75">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
 
-// Escape HTML to prevent XSS
-function escapeHtml(unsafe) {
-    return unsafe
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+    document.body.appendChild(messageEl);
+
+    // Auto-remove after duration
+    if (duration > 0) {
+        setTimeout(() => {
+            if (messageEl.parentNode) {
+                messageEl.style.opacity = '0';
+                setTimeout(() => {
+                    if (messageEl.parentNode) {
+                        messageEl.remove();
+                    }
+                }, 300);
+            }
+        }, duration);
+    }
 }

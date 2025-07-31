@@ -1,236 +1,229 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Events - Together Culture</title>
-    <link rel="icon" type="image/png" href="/tfav.png">
+    <title>Events - Together Culture CRM</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="./css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="bg-gray-50">
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200">
-        <div class="px-6 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <button id="sidebarToggle" class="lg:hidden text-gray-500 hover:text-gray-700">
-                        <i class="fas fa-bars text-xl"></i>
-                    </button>
-                    <h1 class="text-2xl font-bold text-gray-900">Events Management</h1>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-semibold text-gray-900">Event Management</h1>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <div class="hidden sm:flex items-center space-x-2 text-sm text-gray-600">
-                        <span id="userEmail">Loading...</span>
-                        <span class="text-gray-400">|</span>
-                        <span id="userRole" class="capitalize"></span>
-                    </div>
-                    <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
-                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    <button id="createEventBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
+                        <i class="fas fa-plus mr-2"></i>Create Event
+                    </button>
+                    <button onclick="goToAdminDashboard()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
                     </button>
                 </div>
             </div>
         </div>
     </header>
 
-    <div class="flex h-screen">
-        <!-- Sidebar -->
-        <aside id="sidebar" class="w-64 bg-white shadow-sm border-r border-gray-200 transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out fixed lg:relative h-full z-30">
-            <nav class="p-6">
-                <div class="space-y-2">
-                    <a href="/admin_dashboard.html" class="flex items-center space-x-3 text-gray-700 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors">
-                        <i class="fas fa-tachometer-alt text-gray-500"></i>
-                        <span>Dashboard</span>
-                    </a>
-                    <a href="/events.html" class="flex items-center space-x-3 bg-blue-50 text-blue-700 px-3 py-2 rounded-lg">
-                        <i class="fas fa-calendar-alt text-blue-600"></i>
-                        <span>Events</span>
-                    </a>
-                    <a href="/resources.html" class="flex items-center space-x-3 text-gray-700 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors">
-                        <i class="fas fa-folder text-gray-500"></i>
-                        <span>Resources</span>
-                    </a>
-                    <a href="/messages.html" class="flex items-center space-x-3 text-gray-700 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors">
-                        <i class="fas fa-comments text-gray-500"></i>
-                        <span>Messages</span>
-                    </a>
-                    <a href="/member_directory.html" class="flex items-center space-x-3 text-gray-700 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors">
-                        <i class="fas fa-users text-gray-500"></i>
-                        <span>Members</span>
-                    </a>
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <!-- Search and Filter Section -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div class="flex flex-col sm:flex-row gap-4">
+                <div class="flex-1">
+                    <label for="searchInput" class="block text-sm font-medium text-gray-700 mb-2">Search Events</label>
+                    <input type="text" id="searchInput" placeholder="Search by title, description, or location..." 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
                 </div>
-            </nav>
-        </aside>
+                <div class="sm:w-48">
+                    <label for="statusFilter" class="block text-sm font-medium text-gray-700 mb-2">Filter by Status</label>
+                    <select id="statusFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <option value="all">All Events</option>
+                        <option value="upcoming">Upcoming</option>
+                        <option value="past">Past</option>
+                    </select>
+                </div>
+            </div>
+        </div>
 
-        <!-- Main Content -->
-        <main class="flex-1 overflow-hidden">
+        <!-- Events List -->
+        <div id="eventsContainer" class="grid gap-6">
+            <!-- Events will be dynamically loaded here -->
+        </div>
+
+        <!-- Pagination -->
+        <div id="pagination" class="mt-8">
+            <!-- Pagination will be dynamically loaded here -->
+        </div>
+    </main>
+
+    <!-- Create Event Modal -->
+    <div id="createEventModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                <h3 class="text-xl font-semibold text-gray-900">Create New Event</h3>
+                <button data-modal-close class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="createEventForm" class="p-6">
+                <div class="space-y-4">
+                    <div>
+                        <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Event Title *</label>
+                        <input type="text" id="title" name="title" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                               placeholder="Enter event title">
+                    </div>
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+                        <textarea id="description" name="description" required rows="4"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                  placeholder="Enter event description"></textarea>
+                    </div>
+                    <div>
+                        <label for="event_date" class="block text-sm font-medium text-gray-700 mb-1">Event Date & Time *</label>
+                        <input type="datetime-local" id="event_date" name="event_date" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <div>
+                        <label for="location" class="block text-sm font-medium text-gray-700 mb-1">Location *</label>
+                        <input type="text" id="location" name="location" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                               placeholder="Enter event location">
+                    </div>
+                    <div>
+                        <label for="capacity" class="block text-sm font-medium text-gray-700 mb-1">Capacity (Optional)</label>
+                        <input type="number" id="capacity" name="capacity" min="1"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                               placeholder="Enter maximum attendees (leave empty for unlimited)">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
+                    <button type="button" data-modal-close class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
+                        <i class="fas fa-save mr-2"></i>Create Event
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Event Modal -->
+    <div id="editEventModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                <h3 class="text-xl font-semibold text-gray-900">Edit Event</h3>
+                <button data-modal-close class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="editEventForm" class="p-6">
+                <input type="hidden" id="editEventId" name="eventId">
+                <div class="space-y-4">
+                    <div>
+                        <label for="editTitle" class="block text-sm font-medium text-gray-700 mb-1">Event Title *</label>
+                        <input type="text" id="editTitle" name="title" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                               placeholder="Enter event title">
+                    </div>
+                    <div>
+                        <label for="editDescription" class="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+                        <textarea id="editDescription" name="description" required rows="4"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                  placeholder="Enter event description"></textarea>
+                    </div>
+                    <div>
+                        <label for="editEventDate" class="block text-sm font-medium text-gray-700 mb-1">Event Date & Time *</label>
+                        <input type="datetime-local" id="editEventDate" name="event_date" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <div>
+                        <label for="editLocation" class="block text-sm font-medium text-gray-700 mb-1">Location *</label>
+                        <input type="text" id="editLocation" name="location" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                               placeholder="Enter event location">
+                    </div>
+                    <div>
+                        <label for="editCapacity" class="block text-sm font-medium text-gray-700 mb-1">Capacity (Optional)</label>
+                        <input type="number" id="editCapacity" name="capacity" min="1"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                               placeholder="Enter maximum attendees (leave empty for unlimited)">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
+                    <button type="button" data-modal-close class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
+                        <i class="fas fa-save mr-2"></i>Update Event
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Event Modal -->
+    <div id="viewEventModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                <h3 class="text-xl font-semibold text-gray-900">Event Details</h3>
+                <button data-modal-close class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
             <div class="p-6">
-                <!-- Page Header -->
-                <div class="mb-6">
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div>
-                            <h2 class="text-xl font-semibold text-gray-900">Events Management</h2>
-                            <p class="text-gray-600">Manage community events and track attendance</p>
-                        </div>
-                        <button id="createEventBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2">
-                            <i class="fas fa-plus"></i>
-                            <span>Create Event</span>
-                        </button>
+                <div class="space-y-4">
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-900" id="viewEventTitle"></h4>
                     </div>
-                </div>
-
-                <!-- Filters -->
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <p class="text-gray-600" id="viewEventDescription"></p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
-                            <input type="text" id="searchInput" placeholder="Search events..." 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Date & Time</label>
+                            <p class="text-gray-600" id="viewEventDate"></p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                            <select id="statusFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="all">All Events</option>
-                                <option value="upcoming">Upcoming</option>
-                                <option value="past">Past</option>
-                                <option value="active">Active</option>
-                                <option value="cancelled">Cancelled</option>
-                            </select>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                            <p class="text-gray-600" id="viewEventLocation"></p>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
-                            <select id="sortBy" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="date">Date</option>
-                                <option value="title">Title</option>
-                                <option value="created_at">Created</option>
-                                <option value="capacity">Capacity</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Order</label>
-                            <select id="sortOrder" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="DESC">Newest First</option>
-                                <option value="ASC">Oldest First</option>
-                            </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Attendance</label>
+                        <p class="text-gray-600" id="viewEventCapacity"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">RSVPs</label>
+                        <div id="viewEventRsvps" class="max-h-48 overflow-y-auto border border-gray-200 rounded p-3">
+                            <!-- RSVPs will be loaded here -->
                         </div>
                     </div>
                 </div>
-
-                <!-- Events List -->
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <h3 class="text-lg font-medium text-gray-900">Events</h3>
-                    </div>
-                    <div id="eventsContainer" class="p-6">
-                        <div class="text-center py-8">
-                            <i class="fas fa-spinner fa-spin text-3xl text-gray-400 mb-4"></i>
-                            <p class="text-gray-600">Loading events...</p>
-                        </div>
-                    </div>
-
-                    <!-- Pagination -->
-                    <div id="paginationContainer" class="px-6 py-4 border-t border-gray-200">
-                        <!-- Pagination will be inserted here -->
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Create/Edit Event Modal -->
-    <div id="eventModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <form id="eventForm">
-                    <div class="bg-white px-6 pt-6 pb-4">
-                        <h3 id="modalTitle" class="text-lg font-medium text-gray-900 mb-4">Create New Event</h3>
-
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                                <input type="text" id="eventTitle" required 
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                                <textarea id="eventDescription" rows="3" required
-                                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                                    <input type="date" id="eventDate" required 
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
-                                    <input type="time" id="eventTime" required 
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                </div>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                                <input type="text" id="eventLocation" required 
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Capacity (Optional)</label>
-                                    <input type="number" id="eventCapacity" min="1" 
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                                    <select id="eventStatus" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                        <option value="active">Active</option>
-                                        <option value="cancelled">Cancelled</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-gray-50 px-6 py-3 flex justify-end space-x-3">
-                        <button type="button" id="cancelEventBtn" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                            Cancel
-                        </button>
-                        <button type="submit" id="saveEventBtn" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
-                            Save Event
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Event Details Modal -->
-    <div id="eventDetailsModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-                <div class="bg-white px-6 py-6">
-                    <div class="flex justify-between items-start mb-4">
-                        <h3 class="text-xl font-semibold text-gray-900" id="detailsTitle">Event Details</h3>
-                        <button id="closeDetailsBtn" class="text-gray-400 hover:text-gray-600">
-                            <i class="fas fa-times text-xl"></i>
-                        </button>
-                    </div>
-
-                    <div id="eventDetailsContent">
-                        <!-- Event details will be populated here -->
-                    </div>
+                <div class="flex justify-end mt-6 pt-6 border-t border-gray-200">
+                    <button data-modal-close class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50">
+                        Close
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="./js/config.js"></script>
-    <script src="./js/events.js"></script>
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/events.js"></script>
+    <script>
+        // Navigation function
+        function goToAdminDashboard() {
+            window.location.href = '/admin_dashboard.html';
+        }
+    </script>
 </body>
 </html>

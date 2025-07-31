@@ -1,95 +1,64 @@
-
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const { protect, admin } = require('../middleware/authMiddleware');
 
-// Get all events with pagination, search, and filtering
+// Get all events with pagination and filtering
 router.get('/', protect, async (req, res) => {
     try {
-        const { 
-            page = 1, 
-            limit = 10, 
-            search = '', 
-            status = 'all', 
-            sortBy = 'date', 
-            sortOrder = 'DESC' 
-        } = req.query;
-
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
         const offset = (page - 1) * limit;
-        let whereClause = 'WHERE 1=1';
+        const search = req.query.search || '';
+        const status = req.query.status || 'all';
+        const sortBy = req.query.sortBy || 'event_date';
+        const sortOrder = req.query.sortOrder || 'DESC';
+
+        // Build WHERE clause
+        let whereClause = '';
         let queryParams = [];
 
-        // Add search filter
         if (search) {
-            whereClause += ' AND (title LIKE ? OR description LIKE ? OR location LIKE ?)';
-            const searchTerm = `%${search}%`;
-            queryParams.push(searchTerm, searchTerm, searchTerm);
+            whereClause = 'WHERE (title LIKE ? OR description LIKE ? OR location LIKE ?)';
+            queryParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
         }
-
-        // Add status filter
-        if (status !== 'all') {
-            if (status === 'upcoming') {
-                whereClause += ' AND event_date >= CURDATE()';
-            } else if (status === 'past') {
-                whereClause += ' AND event_date < CURDATE()';
-            } else if (status === 'active') {
-                whereClause += ' AND status = "active"';
-            } else if (status === 'cancelled') {
-                whereClause += ' AND status = "cancelled"';
-            }
-        }
-
-        // Validate sort parameters
-        const validSortFields = ['title', 'date', 'created_at', 'capacity'];
-        const validSortOrders = ['ASC', 'DESC'];
-        
-        const sortField = validSortFields.includes(sortBy) ? sortBy : 'date';
-        const sortDirection = validSortOrders.includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'DESC';
 
         // Get total count
         const countQuery = `SELECT COUNT(*) as total FROM events ${whereClause}`;
         const [countResult] = await db.query(countQuery, queryParams);
         const total = countResult[0].total;
 
-        // Get events with RSVP counts
+        // Get events
         const eventsQuery = `
             SELECT 
-                e.*,
-                e.event_date as date,
-                COUNT(er.id) as rsvp_count,
-                (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id AND status = 'attending') as attending_count
-            FROM events e
-            LEFT JOIN event_rsvps er ON e.id = er.event_id AND er.status = 'attending'
+                id,
+                title,
+                description,
+                event_date,
+                location,
+                capacity,
+                created_at,
+                updated_at,
+                (SELECT COUNT(*) FROM event_rsvps WHERE event_id = events.id) as rsvp_count
+            FROM events 
             ${whereClause}
-            GROUP BY e.id
-            ORDER BY ${sortField === 'date' ? 'e.event_date' : sortField} ${sortDirection}
+            ORDER BY ${sortBy} ${sortOrder}
             LIMIT ? OFFSET ?
         `;
 
-        const [events] = await db.query(eventsQuery, [...queryParams, parseInt(limit), parseInt(offset)]);
-
-        // Format dates and add additional info
-        const formattedEvents = events.map(event => ({
-            ...event,
-            date: new Date(event.date).toISOString(),
-            created_at: new Date(event.created_at).toISOString(),
-            updated_at: event.updated_at ? new Date(event.updated_at).toISOString() : null,
-            is_past: new Date(event.date) < new Date(),
-            spots_remaining: event.capacity ? Math.max(0, event.capacity - event.attending_count) : null
-        }));
+        queryParams.push(limit, offset);
+        const [events] = await db.query(eventsQuery, queryParams);
 
         res.json({
             success: true,
-            data: formattedEvents,
+            data: events,
             pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
+                page,
+                limit,
                 total,
-                totalPages: Math.ceil(total / limit)
+                pages: Math.ceil(total / limit)
             }
         });
-
     } catch (error) {
         console.error('Error fetching events:', error);
         res.status(500).json({
@@ -103,19 +72,22 @@ router.get('/', protect, async (req, res) => {
 // Get single event by ID
 router.get('/:id', protect, async (req, res) => {
     try {
-        const { id } = req.params;
-        
+        const eventId = req.params.id;
+
         const [events] = await db.query(`
             SELECT 
-                e.*,
-                e.event_date as date,
-                COUNT(er.id) as rsvp_count,
-                (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id AND status = 'attending') as attending_count
-            FROM events e
-            LEFT JOIN event_rsvps er ON e.id = er.event_id AND er.status = 'attending'
-            WHERE e.id = ?
-            GROUP BY e.id
-        `, [id]);
+                id,
+                title,
+                description,
+                event_date,
+                location,
+                capacity,
+                created_at,
+                updated_at,
+                (SELECT COUNT(*) FROM event_rsvps WHERE event_id = events.id) as rsvp_count
+            FROM events 
+            WHERE id = ?
+        `, [eventId]);
 
         if (events.length === 0) {
             return res.status(404).json({
@@ -124,18 +96,28 @@ router.get('/:id', protect, async (req, res) => {
             });
         }
 
-        const event = events[0];
-        event.date = new Date(event.date).toISOString();
-        event.created_at = new Date(event.created_at).toISOString();
-        event.updated_at = event.updated_at ? new Date(event.updated_at).toISOString() : null;
-        event.is_past = new Date(event.date) < new Date();
-        event.spots_remaining = event.capacity ? Math.max(0, event.capacity - event.attending_count) : null;
+        // Get RSVPs for this event
+        const [rsvps] = await db.query(`
+            SELECT 
+                er.id,
+                er.user_id,
+                er.status,
+                er.created_at,
+                u.full_name,
+                u.email
+            FROM event_rsvps er
+            JOIN users u ON er.user_id = u.id
+            WHERE er.event_id = ?
+            ORDER BY er.created_at DESC
+        `, [eventId]);
 
         res.json({
             success: true,
-            data: event
+            data: {
+                ...events[0],
+                rsvps
+            }
         });
-
     } catch (error) {
         console.error('Error fetching event:', error);
         res.status(500).json({
@@ -149,36 +131,41 @@ router.get('/:id', protect, async (req, res) => {
 // Create new event (admin only)
 router.post('/', protect, admin, async (req, res) => {
     try {
-        const { title, description, date, time, location, capacity, status = 'active' } = req.body;
+        const { title, description, event_date, location, capacity } = req.body;
 
         // Validate required fields
-        if (!title || !description || !date || !time || !location) {
+        if (!title || !description || !event_date || !location) {
             return res.status(400).json({
                 success: false,
-                message: 'Missing required fields: title, description, date, time, location'
-            });
-        }
-
-        // Combine date and time
-        const eventDateTime = new Date(`${date}T${time}`);
-        if (isNaN(eventDateTime.getTime())) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid date or time format'
+                message: 'Title, description, event date, and location are required'
             });
         }
 
         const [result] = await db.query(`
-            INSERT INTO events (title, description, event_date, location, capacity, status, created_by, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
-        `, [title, description, eventDateTime, location, capacity || null, status, req.user.id]);
+            INSERT INTO events (title, description, event_date, location, capacity)
+            VALUES (?, ?, ?, ?, ?)
+        `, [title, description, event_date, location, capacity || 0]);
+
+        // Get the created event
+        const [newEvent] = await db.query(`
+            SELECT 
+                id,
+                title,
+                description,
+                event_date,
+                location,
+                capacity,
+                created_at,
+                updated_at
+            FROM events 
+            WHERE id = ?
+        `, [result.insertId]);
 
         res.status(201).json({
             success: true,
             message: 'Event created successfully',
-            data: { id: result.insertId }
+            data: newEvent[0]
         });
-
     } catch (error) {
         console.error('Error creating event:', error);
         res.status(500).json({
@@ -192,71 +179,52 @@ router.post('/', protect, admin, async (req, res) => {
 // Update event (admin only)
 router.put('/:id', protect, admin, async (req, res) => {
     try {
-        const { id } = req.params;
-        const { title, description, date, time, location, capacity, status } = req.body;
+        const eventId = req.params.id;
+        const { title, description, event_date, location, capacity } = req.body;
 
         // Check if event exists
-        const [existingEvents] = await db.query('SELECT id FROM events WHERE id = ?', [id]);
-        if (existingEvents.length === 0) {
+        const [existingEvent] = await db.query('SELECT id FROM events WHERE id = ?', [eventId]);
+        if (existingEvent.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Event not found'
             });
         }
 
-        // Build update query dynamically
-        const updateFields = [];
-        const updateValues = [];
-
-        if (title !== undefined) {
-            updateFields.push('title = ?');
-            updateValues.push(title);
-        }
-        if (description !== undefined) {
-            updateFields.push('description = ?');
-            updateValues.push(description);
-        }
-        if (date !== undefined && time !== undefined) {
-            const eventDateTime = new Date(`${date}T${time}`);
-            if (!isNaN(eventDateTime.getTime())) {
-                updateFields.push('event_date = ?');
-                updateValues.push(eventDateTime);
-            }
-        }
-        if (location !== undefined) {
-            updateFields.push('location = ?');
-            updateValues.push(location);
-        }
-        if (capacity !== undefined) {
-            updateFields.push('capacity = ?');
-            updateValues.push(capacity || null);
-        }
-        if (status !== undefined) {
-            updateFields.push('status = ?');
-            updateValues.push(status);
-        }
-
-        if (updateFields.length === 0) {
+        // Validate required fields
+        if (!title || !description || !event_date || !location) {
             return res.status(400).json({
                 success: false,
-                message: 'No fields to update'
+                message: 'Title, description, event date, and location are required'
             });
         }
 
-        updateFields.push('updated_at = NOW()');
-        updateValues.push(id);
-
         await db.query(`
             UPDATE events 
-            SET ${updateFields.join(', ')}
+            SET title = ?, description = ?, event_date = ?, location = ?, capacity = ?, updated_at = NOW()
             WHERE id = ?
-        `, updateValues);
+        `, [title, description, event_date, location, capacity || 0, eventId]);
+
+        // Get the updated event
+        const [updatedEvent] = await db.query(`
+            SELECT 
+                id,
+                title,
+                description,
+                event_date,
+                location,
+                capacity,
+                created_at,
+                updated_at
+            FROM events 
+            WHERE id = ?
+        `, [eventId]);
 
         res.json({
             success: true,
-            message: 'Event updated successfully'
+            message: 'Event updated successfully',
+            data: updatedEvent[0]
         });
-
     } catch (error) {
         console.error('Error updating event:', error);
         res.status(500).json({
@@ -270,28 +238,27 @@ router.put('/:id', protect, admin, async (req, res) => {
 // Delete event (admin only)
 router.delete('/:id', protect, admin, async (req, res) => {
     try {
-        const { id } = req.params;
+        const eventId = req.params.id;
 
         // Check if event exists
-        const [existingEvents] = await db.query('SELECT id FROM events WHERE id = ?', [id]);
-        if (existingEvents.length === 0) {
+        const [existingEvent] = await db.query('SELECT id FROM events WHERE id = ?', [eventId]);
+        if (existingEvent.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Event not found'
             });
         }
 
-        // Delete associated RSVPs first
-        await db.query('DELETE FROM event_rsvps WHERE event_id = ?', [id]);
-        
+        // Delete RSVPs first (foreign key constraint)
+        await db.query('DELETE FROM event_rsvps WHERE event_id = ?', [eventId]);
+
         // Delete the event
-        await db.query('DELETE FROM events WHERE id = ?', [id]);
+        await db.query('DELETE FROM events WHERE id = ?', [eventId]);
 
         res.json({
             success: true,
             message: 'Event deleted successfully'
         });
-
     } catch (error) {
         console.error('Error deleting event:', error);
         res.status(500).json({
@@ -305,133 +272,48 @@ router.delete('/:id', protect, admin, async (req, res) => {
 // RSVP to event
 router.post('/:id/rsvp', protect, async (req, res) => {
     try {
-        const { id } = req.params;
+        const eventId = req.params.id;
+        const userId = req.user.id;
         const { status = 'attending' } = req.body;
 
-        // Check if event exists and get capacity
-        const [events] = await db.query('SELECT * FROM events WHERE id = ?', [id]);
-        if (events.length === 0) {
+        // Check if event exists
+        const [event] = await db.query('SELECT id, capacity FROM events WHERE id = ?', [eventId]);
+        if (event.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Event not found'
             });
         }
 
-        const event = events[0];
-
-        // Check if event is in the past
-        if (new Date(event.event_date) < new Date()) {
-            return res.status(400).json({
-                success: false,
-                message: 'Cannot RSVP to past events'
-            });
-        }
-
-        // Check capacity if attending
-        if (status === 'attending' && event.capacity) {
-            const [rsvpCount] = await db.query(
-                'SELECT COUNT(*) as count FROM event_rsvps WHERE event_id = ? AND status = "attending"',
-                [id]
-            );
-            
-            if (rsvpCount[0].count >= event.capacity) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Event is at full capacity'
-                });
-            }
-        }
-
-        // Check if user already has an RSVP
+        // Check if user already RSVPed
         const [existingRsvp] = await db.query(
             'SELECT id FROM event_rsvps WHERE event_id = ? AND user_id = ?',
-            [id, req.user.id]
+            [eventId, userId]
         );
 
         if (existingRsvp.length > 0) {
             // Update existing RSVP
             await db.query(
                 'UPDATE event_rsvps SET status = ?, updated_at = NOW() WHERE event_id = ? AND user_id = ?',
-                [status, id, req.user.id]
+                [status, eventId, userId]
             );
         } else {
             // Create new RSVP
             await db.query(
-                'INSERT INTO event_rsvps (event_id, user_id, status, created_at) VALUES (?, ?, ?, NOW())',
-                [id, req.user.id, status]
+                'INSERT INTO event_rsvps (event_id, user_id, status) VALUES (?, ?, ?)',
+                [eventId, userId, status]
             );
         }
 
         res.json({
             success: true,
-            message: `RSVP updated to ${status}`
+            message: 'RSVP updated successfully'
         });
-
     } catch (error) {
         console.error('Error updating RSVP:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to update RSVP',
-            error: error.message
-        });
-    }
-});
-
-// Get user's RSVP status for an event
-router.get('/:id/rsvp', protect, async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        const [rsvps] = await db.query(
-            'SELECT status FROM event_rsvps WHERE event_id = ? AND user_id = ?',
-            [id, req.user.id]
-        );
-
-        res.json({
-            success: true,
-            data: {
-                status: rsvps.length > 0 ? rsvps[0].status : null
-            }
-        });
-
-    } catch (error) {
-        console.error('Error fetching RSVP status:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch RSVP status',
-            error: error.message
-        });
-    }
-});
-
-// Get event attendees (admin only)
-router.get('/:id/attendees', protect, admin, async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        const [attendees] = await db.query(`
-            SELECT 
-                u.id,
-                u.full_name,
-                u.email,
-                er.status,
-                er.created_at as rsvp_date
-            FROM event_rsvps er
-            JOIN users u ON er.user_id = u.id
-            WHERE er.event_id = ?
-            ORDER BY er.created_at DESC
-        `, [id]);
-
-        res.json({
-            success: true,
-            data: attendees
-        });
-
-    } catch (error) {
-        console.error('Error fetching attendees:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch attendees',
             error: error.message
         });
     }

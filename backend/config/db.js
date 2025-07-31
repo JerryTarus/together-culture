@@ -7,6 +7,12 @@ require('dotenv').config();
 const isDatabaseUrl = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres');
 const isMySQL = !isDatabaseUrl;
 
+console.log('🔍 Database environment check:');
+console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+console.log('DATABASE_URL starts with postgres:', process.env.DATABASE_URL?.startsWith('postgres'));
+console.log('Using PostgreSQL:', isDatabaseUrl);
+console.log('Using MySQL:', isMySQL);
+
 let pool;
 
 if (isMySQL) {

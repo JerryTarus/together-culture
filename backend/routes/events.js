@@ -30,9 +30,9 @@ router.get('/', protect, async (req, res) => {
         // Add status filter
         if (status !== 'all') {
             if (status === 'upcoming') {
-                whereClause += ' AND date >= CURDATE()';
+                whereClause += ' AND event_date >= CURDATE()';
             } else if (status === 'past') {
-                whereClause += ' AND date < CURDATE()';
+                whereClause += ' AND event_date < CURDATE()';
             } else if (status === 'active') {
                 whereClause += ' AND status = "active"';
             } else if (status === 'cancelled') {
@@ -56,13 +56,14 @@ router.get('/', protect, async (req, res) => {
         const eventsQuery = `
             SELECT 
                 e.*,
+                e.event_date as date,
                 COUNT(er.id) as rsvp_count,
                 (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id AND status = 'attending') as attending_count
             FROM events e
             LEFT JOIN event_rsvps er ON e.id = er.event_id AND er.status = 'attending'
             ${whereClause}
             GROUP BY e.id
-            ORDER BY ${sortField} ${sortDirection}
+            ORDER BY ${sortField === 'date' ? 'e.event_date' : sortField} ${sortDirection}
             LIMIT ? OFFSET ?
         `;
 
@@ -107,6 +108,7 @@ router.get('/:id', protect, async (req, res) => {
         const [events] = await db.query(`
             SELECT 
                 e.*,
+                e.event_date as date,
                 COUNT(er.id) as rsvp_count,
                 (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id AND status = 'attending') as attending_count
             FROM events e
@@ -167,7 +169,7 @@ router.post('/', protect, admin, async (req, res) => {
         }
 
         const [result] = await db.query(`
-            INSERT INTO events (title, description, date, location, capacity, status, created_by, created_at)
+            INSERT INTO events (title, description, event_date, location, capacity, status, created_by, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
         `, [title, description, eventDateTime, location, capacity || null, status, req.user.id]);
 
@@ -217,7 +219,7 @@ router.put('/:id', protect, admin, async (req, res) => {
         if (date !== undefined && time !== undefined) {
             const eventDateTime = new Date(`${date}T${time}`);
             if (!isNaN(eventDateTime.getTime())) {
-                updateFields.push('date = ?');
+                updateFields.push('event_date = ?');
                 updateValues.push(eventDateTime);
             }
         }
@@ -318,7 +320,7 @@ router.post('/:id/rsvp', protect, async (req, res) => {
         const event = events[0];
 
         // Check if event is in the past
-        if (new Date(event.date) < new Date()) {
+        if (new Date(event.event_date) < new Date()) {
             return res.status(400).json({
                 success: false,
                 message: 'Cannot RSVP to past events'

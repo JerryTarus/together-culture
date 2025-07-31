@@ -355,8 +355,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         return colors[type] || colors.default;
     }
 
-    // Check authentication and user role
-    async function checkAuth() {
+    // Check authentication and load dashboard
+    async function checkAuthAndLoadDashboard() {
         try {
             console.log('Checking authentication...');
             const response = await fetch(`${CONFIG.API_BASE_URL}/api/auth/me`, {
@@ -364,42 +364,59 @@ document.addEventListener('DOMContentLoaded', async () => {
                 credentials: 'include'
             });
 
-            console.log('Auth response status:', response.status);
-
             if (!response.ok) {
                 if (response.status === 401) {
-                    console.log('User not authenticated, redirecting to login');
+                    console.log('Not authenticated, redirecting to login');
                     window.location.href = '/login.html';
-                    return false;
+                    return;
                 }
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             const data = await response.json();
-            console.log('User authenticated:', data);
+            console.log('User authenticated:', data.email, 'Role:', data.role);
 
-            // Check if user is admin (should not be on member dashboard)
+            // Store user data
+            currentUser = data;
+
+            // Check if user is admin and redirect if needed
             if (data.role === 'admin') {
                 console.log('Admin user detected, redirecting to admin dashboard');
                 window.location.href = '/admin_dashboard.html';
-                return false;
+                return;
             }
 
-            // Ensure user is a member
-            if (data.role !== 'member') {
-                console.log('Invalid role for member dashboard:', data.role);
-                window.location.href = '/login.html';
-                return false;
-            }
+            console.log('Loading member dashboard for:', data.email);
 
+            // Update user info in the UI
             updateUserInfo(data);
-            console.log('Member dashboard loaded successfully for user:', data.email);
-            return true;
+
+            // Load dashboard content
+            await loadDashboardContent();
+
+            console.log('Member dashboard loaded successfully');
 
         } catch (error) {
             console.error('Authentication error:', error);
-            window.location.href = '/login.html';
-            return false;
+            showToast('Authentication failed. Please login again.', 'error');
+            setTimeout(() => {
+                window.location.href = '/login.html';
+            }, 2000);
+        }
+    }
+
+    // Load dashboard content
+    async function loadDashboardContent() {
+        try {
+            console.log('Loading dashboard content...');
+            await Promise.all([
+                loadUpcomingEvents(),
+                loadRecentActivity()
+            ]);
+            console.log('Dashboard content loaded successfully');
+        } catch (error) {
+            console.error('Error loading dashboard content:', error);
+            showToast('Some dashboard content failed to load', 'warning');
         }
     }
 
@@ -409,7 +426,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.log('Member dashboard page loaded');
 
     try {
-        const isAuthenticated = await checkAuth();
+        const isAuthenticated = await checkAuthAndLoadDashboard();
         if (isAuthenticated) {
             await loadDashboard();
             await loadDashboardStats();

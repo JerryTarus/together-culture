@@ -127,38 +127,28 @@ async function handleLogin(e) {
             return;
         }
 
-        // --- SUCCESS PATH STARTS HERE ---
-        const data = await res.json();
-        console.log('Login successful, full response data:', data); // Debug log
+        // Handle successful login
+        if (data.success) {
+            console.log('Login successful for user:', data.user.email, 'Role:', data.user.role);
 
-        // Show success message
-        showMessage('Login successful! Redirecting...', 'success', 1500); // Show for 1.5 seconds
+            // Clear any existing messages
+            clearMessages();
 
-        // --- CRITICAL FIX: REDIRECT BASED ON USER ROLE ---
-        // Use setTimeout to allow the message to be seen briefly before redirecting
-        setTimeout(() => {
-            // Determine the redirect URL based on user role
-            let redirectUrl = './member_dashboard.html'; // Default for members
+            // Short delay to ensure token is set
+            setTimeout(() => {
+                // Redirect based on user role
+                if (data.user.role === 'admin') {
+                    console.log('Redirecting admin to admin dashboard');
+                    window.location.href = '/admin_dashboard.html';
+                } else {
+                    console.log('Redirecting member to member dashboard');
+                    window.location.href = '/member_dashboard.html';
+                }
+            }, 100);
 
-            if (data.user && data.user.role === 'admin') {
-                console.log("Redirecting admin to admin dashboard...");
-                redirectUrl = './admin_dashboard.html';
-            } else if (data.user) {
-                console.log("Redirecting user to member dashboard...");
-                redirectUrl = './member_dashboard.html';
-            } else {
-                // Safety check in case data.user is missing unexpectedly
-                console.error("Unexpected response structure, missing user data:", data);
-                redirectUrl = './member_dashboard.html'; // Default fallback
-            }
+            return;
 
-            console.log('Performing redirect to:', redirectUrl);
-            // Perform the actual redirect using relative path
-            window.location.href = redirectUrl;
-        }, 1600); // Redirect slightly after the message appears (1.6 seconds)
-        // --- CRITICAL FIX: REDIRECT ENDS ---
-
-        return;
+        }
 
     } catch (error) {
         console.error('Login error:', error);

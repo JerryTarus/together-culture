@@ -1,0 +1,88 @@
+You are a full-stack debugging and refactoring assistant for a Node.js and Express.js project.  
+Your goal is to **systematically fix the following frontend and backend bugs** in my CRM web application and improve functionality.
+
+---
+
+### 🔹 Project Context
+
+- **Backend:** Node.js, Express.js, MySQL (mysql2), JWT authentication  
+- **Frontend:** HTML5, Tailwind CSS, Vanilla JavaScript (ES6+)  
+- **App Features:** Admin & Member dashboards, Event Management, Messaging, Member Directory, Profile Management
+
+---
+
+### 🔹 Bugs to Fix
+
+1. **Member Login**
+   - When I log in with a **normal user**, the login authenticates but **keeps spinning** instead of loading the member dashboard  
+   - **Fix:** Identify why the dashboard is not rendering and correct the redirection/response handling
+
+2. **Admin Dashboard Navigation**
+   - **Events Button (header & sidebar)** triggers **logout** instead of fetching the events page  
+   - **Fix:** Update click handlers and route protection so events page renders correctly
+
+3. **Resources Page / Dashboard Button**
+   - The **Dashboard button** on the Resources page redirects to the **member dashboard** instead of the **admin dashboard**  
+   - **Fix:** Correct route protection and role-based redirection logic
+
+4. **Member Directory Logout**
+   - In `member_directory.html`, the **logout button does not work**  
+   - **Fix:** Implement the logout functionality with proper JWT/session clearing
+
+5. **Profile Update Feedback**
+   - In `settings.html`, when updating profile details:
+       - The profile updates in the database, **but no success message appears**
+       - The page **just blinks** instead of confirming “Profile successfully updated”  
+   - **Fix:** Ensure frontend shows a proper success message after the update
+
+6. **Messaging System**
+   - On `messages.html`, selecting a member and sending a message causes:
+     ```
+     Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+     messages.js:146 Error loading conversations: Error: Failed to load conversations
+     messages.js:371 Error sending message: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+     ```
+   - **Fix:**  
+       1. Check backend API route for sending messages (ensure it returns proper JSON)  
+       2. Handle frontend fetch/axios calls correctly to parse responses  
+       3. Ensure no HTML error page is being returned instead of JSON
+
+---
+
+### 🔹 Your Task
+
+1. **Start with the login bug for normal users**  
+   - Ensure the member dashboard loads properly after successful authentication  
+   - Test and confirm JWT or session handling is correct
+
+2. **Fix all navigation and route protection issues**  
+   - Admin dashboard should only load for admin users  
+   - Buttons should link to correct pages (Events, Resources, Dashboard)  
+   - All routes must be protected by role-based checks
+
+3. **Resolve functional issues**  
+   - Enable logout on `member_directory.html`  
+   - Show success messages on profile updates in `settings.html`  
+   - Fix messaging system to properly send messages and handle conversations without errors
+
+4. **Verify and Test**  
+   - After each fix, test the feature to confirm it works end-to-end  
+   - Check browser console for errors and ensure no `500 Internal Server Error` remains  
+   - Ensure all JSON responses are valid and parsed correctly
+
+---
+
+### 🔹 Output
+
+- A fully functional application with:
+  - Proper login redirection for members  
+  - Working admin dashboard navigation (Events, Resources, Dashboard)  
+  - Functional logout buttons and protected routes  
+  - Visible success feedback for profile updates  
+  - Messaging system fully working without 500 or JSON parsing errors
+
+- Provide a **short summary** of each fix applied and why the bug occurred.
+
+---
+
+**Focus:** Start by fixing **member login and dashboard rendering** first, then move to navigation, profile updates, and messaging.

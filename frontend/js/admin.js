@@ -364,12 +364,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // --- 8. PREVENT EVENT BUBBLING ON NAVIGATION LINKS ---
-    const navLinks = document.querySelectorAll('a[href]');
+    // --- 8. PROPER NAVIGATION HANDLING ---
+    // Ensure navigation links work properly without interfering with logout
+    const navLinks = document.querySelectorAll('nav a[href], aside a[href], header a[href]');
     navLinks.forEach(link => {
+        // Remove any existing event listeners that might interfere
         link.addEventListener('click', (e) => {
-            // Only prevent default for external navigation, allow normal link behavior
+            // Allow normal navigation, just stop propagation to prevent bubbling
             e.stopPropagation();
+            
+            // For events links specifically, ensure they navigate properly
+            if (link.href.includes('events.html')) {
+                e.preventDefault();
+                window.location.href = './events.html';
+            }
+        });
+    });
+
+    // Ensure logout buttons are properly isolated
+    const logoutButtons = document.querySelectorAll('#logout-button, #logout-button-header');
+    logoutButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
         });
     });
 });

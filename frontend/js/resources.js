@@ -5,6 +5,9 @@ let currentUser = null;
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Resources page loaded');
 
+    // Initialize DOM elements first
+    initializeDOMElements();
+
     // Check authentication
     await checkAuthentication();
 
@@ -54,7 +57,15 @@ function updateUIForRole() {
 
 async function loadResources() {
     try {
-        const response = await fetch(CONFIG.apiUrl('api/resources'), {
+        showLoading(true);
+        
+        const queryParams = new URLSearchParams({
+            page: currentPage,
+            limit: 20,
+            ...currentFilters
+        });
+        
+        const response = await fetch(CONFIG.apiUrl(`api/resources?${queryParams}`), {
             credentials: 'include'
         });
 
@@ -62,12 +73,25 @@ async function loadResources() {
             throw new Error('Failed to load resources');
         }
 
-        const resources = await response.json();
-        displayResources(resources);
+        const data = await response.json();
+        console.log('Resources data:', data);
+        
+        // Handle both old and new API response formats
+        const resources = data.resources || data;
+        const pagination = data.pagination;
+        
+        displayResources(Array.isArray(resources) ? resources : []);
+        
+        if (pagination) {
+            updatePagination(pagination);
+        }
 
     } catch (error) {
         console.error('Error loading resources:', error);
         showMessage('Failed to load resources', 'error');
+        showNoResources();
+    } finally {
+        showLoading(false);
     }
 }
 
@@ -75,19 +99,12 @@ function displayResources(resources) {
     const container = document.getElementById('resources-container');
     if (!container) return;
 
-    if (resources.length === 0) {
-        container.innerHTML = `
-            <div class="text-center py-12">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <h3 class="mt-2 text-sm font-medium text-gray-900">No resources</h3>
-                <p class="mt-1 text-sm text-gray-500">Get started by uploading a resource.</p>
-            </div>
-        `;
+    if (!Array.isArray(resources) || resources.length === 0) {
+        showNoResources();
         return;
     }
 
+    container.classList.remove('hidden');
     container.innerHTML = resources.map(resource => `
         <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between">
@@ -95,22 +112,32 @@ function displayResources(resources) {
                     <h3 class="text-lg font-medium text-gray-900 mb-2">${escapeHtml(resource.title)}</h3>
                     <p class="text-gray-600 text-sm mb-4">${escapeHtml(resource.description || 'No description available')}</p>
                     <div class="flex items-center text-sm text-gray-500 space-x-4">
-                        <span>Type: ${escapeHtml(resource.type)}</span>
+                        <span>Type: ${escapeHtml(resource.file_type || 'Unknown')}</span>
+                        <span>•</span>
+                        <span>Size: ${formatFileSize(resource.file_size || 0)}</span>
                         <span>•</span>
                         <span>Uploaded: ${new Date(resource.created_at).toLocaleDateString()}</span>
                         <span>•</span>
-                        <span>By: ${escapeHtml(resource.uploaded_by_name)}</span>
+                        <span>By: ${escapeHtml(resource.uploaded_by_name || 'Unknown')}</span>
                     </div>
                 </div>
                 <div class="flex flex-col space-y-2 ml-4">
+                    <button onclick="viewResource(${resource.id})" 
+                            class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-brand-primary bg-brand-primary/10 hover:bg-brand-primary/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                        View
+                    </button>
                     <a href="${CONFIG.apiUrl('api/resources/' + resource.id + '/download')}" 
-                       class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary">
+                       class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                         </svg>
                         Download
                     </a>
-                    ${currentUser.role === 'admin' ? `
+                    ${currentUser && currentUser.role === 'admin' ? `
                         <button onclick="deleteResource(${resource.id})" 
                                 class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -163,6 +190,11 @@ function initializeDOMElements() {
     // User elements
     userNameSpan = document.getElementById('user-name');
     logoutBtn = document.getElementById('logout-btn');
+
+    // Initialize elements immediately
+    if (resourcesContainer) resourcesContainer.classList.add('hidden');
+    if (noResourcesDiv) noResourcesDiv.classList.add('hidden');
+    if (paginationDiv) paginationDiv.classList.add('hidden');
 }
 
 function setupEventListeners() {
@@ -258,7 +290,9 @@ async function handleFormSubmit(event) {
     const fileInput = document.getElementById('file-input');
     const titleInput = document.getElementById('resource-title');
     const descriptionInput = document.getElementById('resource-description');
-    const typeSelect = document.getElementById('resource-type');
+    const categorySelect = document.getElementById('resource-category');
+    const accessSelect = document.getElementById('resource-access');
+    const tagsInput = document.getElementById('resource-tags');
 
     if (!fileInput.files[0]) {
         showMessage('Please select a file', 'error');
@@ -270,18 +304,29 @@ async function handleFormSubmit(event) {
         return;
     }
 
-    const submitBtn = document.getElementById('submit-upload');
+    if (!descriptionInput.value.trim()) {
+        showMessage('Please enter a description', 'error');
+        return;
+    }
+
+    const submitBtn = document.getElementById('upload-submit-btn');
+    const uploadText = submitBtn.querySelector('.upload-text');
+    const uploadLoading = submitBtn.querySelector('.upload-loading');
+    
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Uploading...';
+    uploadText.textContent = 'Uploading...';
+    uploadLoading.classList.remove('hidden');
 
     try {
         const formData = new FormData();
-        formData.append('file', fileInput.files[0]);
+        formData.append('files', fileInput.files[0]);
         formData.append('title', titleInput.value.trim());
         formData.append('description', descriptionInput.value.trim());
-        formData.append('type', typeSelect.value);
+        formData.append('category', categorySelect.value);
+        formData.append('access_level', accessSelect.value);
+        formData.append('tags', tagsInput.value.trim());
 
-        const response = await fetch(CONFIG.apiUrl('api/resources/upload'), {
+        const response = await fetch(CONFIG.apiUrl('api/resources'), {
             method: 'POST',
             credentials: 'include',
             body: formData
@@ -294,10 +339,8 @@ async function handleFormSubmit(event) {
 
         showMessage('Resource uploaded successfully', 'success');
 
-        // Reset form
-        document.getElementById('upload-form').reset();
-        document.getElementById('upload-section').classList.add('hidden');
-        document.getElementById('file-name').textContent = '';
+        // Close modal and reset form
+        closeUploadModal();
 
         // Reload resources
         await loadResources();
@@ -307,7 +350,8 @@ async function handleFormSubmit(event) {
         showMessage(error.message || 'Failed to upload resource', 'error');
     } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Upload Resource';
+        uploadText.textContent = 'Upload Resource';
+        uploadLoading.classList.add('hidden');
     }
 }
 
@@ -616,9 +660,133 @@ function showMessage(message, type = 'info', duration = 3000) {
     }, duration);
 }
 
+// Resource management functions
+async function viewResource(resourceId) {
+    try {
+        const response = await fetch(CONFIG.apiUrl(`api/resources/${resourceId}`), {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to load resource details');
+        }
+
+        const data = await response.json();
+        const resource = data.resource;
+
+        // Update modal content
+        document.getElementById('resource-modal-title').textContent = resource.title;
+        document.getElementById('resource-modal-content').innerHTML = `
+            <div class="space-y-4">
+                <div>
+                    <h4 class="font-medium text-gray-900">Description</h4>
+                    <p class="text-gray-600 mt-1">${escapeHtml(resource.description || 'No description available')}</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <h4 class="font-medium text-gray-900">Category</h4>
+                        <p class="text-gray-600 mt-1">${escapeHtml(resource.category || 'General')}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-900">File Type</h4>
+                        <p class="text-gray-600 mt-1">${escapeHtml(resource.file_type || 'Unknown')}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-900">File Size</h4>
+                        <p class="text-gray-600 mt-1">${formatFileSize(resource.file_size || 0)}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-900">Downloads</h4>
+                        <p class="text-gray-600 mt-1">${resource.downloads || 0}</p>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-900">Uploaded By</h4>
+                    <p class="text-gray-600 mt-1">${escapeHtml(resource.uploaded_by_name || 'Unknown')} on ${new Date(resource.created_at).toLocaleDateString()}</p>
+                </div>
+                ${resource.tags ? `
+                    <div>
+                        <h4 class="font-medium text-gray-900">Tags</h4>
+                        <p class="text-gray-600 mt-1">${escapeHtml(resource.tags)}</p>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+
+        // Update modal actions
+        document.getElementById('resource-modal-actions').innerHTML = `
+            <a href="${CONFIG.apiUrl('api/resources/' + resource.id + '/download')}" 
+               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary/90">
+                Download
+            </a>
+            <button onclick="closeResourceModal()" 
+                    class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                Close
+            </button>
+        `;
+
+        // Show modal
+        document.getElementById('resource-modal').classList.remove('hidden');
+
+    } catch (error) {
+        console.error('Error loading resource:', error);
+        showMessage('Failed to load resource details', 'error');
+    }
+}
+
+async function downloadResource(resourceId) {
+    try {
+        window.open(CONFIG.apiUrl(`api/resources/${resourceId}/download`), '_blank');
+    } catch (error) {
+        console.error('Error downloading resource:', error);
+        showMessage('Failed to download resource', 'error');
+    }
+}
+
+async function deleteResource(resourceId) {
+    if (!confirm('Are you sure you want to delete this resource? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(CONFIG.apiUrl(`api/resources/${resourceId}`), {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to delete resource');
+        }
+
+        showMessage('Resource deleted successfully', 'success');
+        await loadResources(); // Reload the resources list
+
+    } catch (error) {
+        console.error('Error deleting resource:', error);
+        showMessage(error.message || 'Failed to delete resource', 'error');
+    }
+}
+
+function openUploadModal() {
+    document.getElementById('upload-modal').classList.remove('hidden');
+}
+
+function closeUploadModal() {
+    document.getElementById('upload-modal').classList.add('hidden');
+    // Reset form
+    document.getElementById('upload-form').reset();
+    document.getElementById('file-list').innerHTML = '';
+}
+
+function closeResourceModal() {
+    document.getElementById('resource-modal').classList.add('hidden');
+}
+
 // Global functions for onclick handlers
 window.viewResource = viewResource;
 window.downloadResource = downloadResource;
+window.openUploadModal = openUploadModal;
 window.closeUploadModal = closeUploadModal;
 window.closeResourceModal = closeResourceModal;
 window.deleteResource = deleteResource;

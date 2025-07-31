@@ -1,137 +1,69 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Events - Together Culture</title>
-    <link rel="icon" type="image/png" sizes="32x32" href="/tfav.png">
-    <link rel="shortcut icon" href="/tfav.png">
+    <title>Events - Together Culture CRM</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="./css/style.css" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700;800">
-    <style>
-        .calendar-day {
-            min-height: 120px;
-            border: 1px solid #e5e7eb;
-            cursor: pointer;
-            transition: all 0.2s ease;
+    <link rel="stylesheet" href="./css/style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-primary': '#4F46E5',
+                        'brand-secondary': '#7C3AED',
+                        'brand-accent': '#06B6D4'
+                    }
+                }
+            }
         }
-        .calendar-day:hover {
-            background-color: #f8fafc;
-            border-color: #3b82f6;
-        }
-        .calendar-day.has-events {
-            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-        }
-        .event-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 4px;
-        }
-        .loading-spinner {
-            border: 3px solid #f3f4f6;
-            border-top: 3px solid #3b82f6;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .modal-backdrop {
-            background-color: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(4px);
-        }
-        .event-card {
-            transition: all 0.3s ease;
-            border-left: 4px solid transparent;
-        }
-        .event-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            border-left-color: #3b82f6;
-        }
-        .event-card.upcoming {
-            border-left-color: #10b981;
-        }
-        .event-card.past {
-            border-left-color: #6b7280;
-            opacity: 0.8;
-        }
-        .floating-action-btn {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            z-index: 40;
-            box-shadow: 0 10px 25px -3px rgba(59, 130, 246, 0.5);
-        }
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.025em;
-        }
-        .status-upcoming {
-            background-color: #dcfce7;
-            color: #166534;
-        }
-        .status-past {
-            background-color: #f3f4f6;
-            color: #6b7280;
-        }
-        .status-full {
-            background-color: #fee2e2;
-            color: #991b1b;
-        }
-        .status-available {
-            background-color: #dbeafe;
-            color: #1e40af;
-        }
-    </style>
+    </script>
 </head>
-<body class="bg-gray-50 font-inter">
-    <!-- Header Navigation -->
-    <nav class="bg-white shadow-sm border-b sticky top-0 z-30">
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex items-center gap-8">
-                    <a href="/" class="flex items-center gap-3">
-                        <svg class="h-8 w-8 text-blue-600" viewBox="0 0 48 48" fill="none">
-                            <path d="M39.5563 34.1455V13.8546C39.5563 15.708 36.8773 17.3437 32.7927 18.3189C30.2914 18.916 27.263 19.2655 24 19.2655C20.737 19.2655 17.7086 18.916 15.2073 18.3189C11.1227 17.3437 8.44365 15.708 8.44365 13.8546V34.1455C8.44365 35.9988 11.1227 37.6346 15.2073 38.6098C17.7086 39.2069 20.737 39.5564 24 39.5564C27.263 39.5564 30.2914 39.2069 32.7927 38.6098C36.8773 37.6346 39.5563 35.9988 39.5563 34.1455Z" fill="currentColor"></path>
-                        </svg>
-                        <h1 class="text-xl font-bold text-gray-900">Together Culture</h1>
-                    </a>
-                    <div class="hidden md:flex items-center gap-6">
-                        <a href="./admin_dashboard.html" class="text-gray-600 hover:text-gray-900 font-medium transition-colors">Dashboard</a>
-                        <a href="./member_directory.html" class="text-gray-600 hover:text-gray-900 font-medium transition-colors">Members</a>
-                        <a href="./events.html" class="text-blue-600 font-semibold border-b-2 border-blue-600 pb-4">Events</a>
-                        <a href="./messages.html" class="text-gray-600 hover:text-gray-900 font-medium transition-colors">Messages</a>
-                        <a href="./resources.html" class="text-gray-600 hover:text-gray-900 font-medium transition-colors">Resources</a>
-                        <a href="./settings.html" class="text-gray-600 hover:text-gray-900 font-medium transition-colors">Settings</a>
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo and Navigation -->
+                <div class="flex items-center space-x-8">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-gradient-to-br from-brand-primary to-brand-secondary rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-sm">TC</span>
+                        </div>
+                        <h1 class="ml-3 text-xl font-bold text-gray-900">Together Culture</h1>
                     </div>
+
+                    <!-- Navigation -->
+                    <nav class="hidden lg:flex space-x-8">
+                        <a href="/member_dashboard.html" class="text-gray-500 hover:text-gray-900 font-medium transition-colors">Dashboard</a>
+                        <a href="/events.html" class="text-brand-primary font-medium border-b-2 border-brand-primary pb-4">Events</a>
+                        <a href="/messages.html" class="text-gray-500 hover:text-gray-900 font-medium transition-colors">Messages</a>
+                        <a href="/resources.html" class="text-gray-500 hover:text-gray-900 font-medium transition-colors">Resources</a>
+                    </nav>
                 </div>
-                <div class="flex items-center gap-4">
-                    <span id="user-name" class="text-sm text-gray-600 font-medium"></span>
-                    <button id="logout-btn" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors">
-                        Logout
+
+                <!-- User Menu -->
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                            <span id="user-avatar" class="text-gray-600 font-medium text-sm"></span>
+                        </div>
+                        <span id="user-name" class="text-gray-700 font-medium hidden sm:block"></span>
+                    </div>
+                    <button id="logout-btn" class="text-gray-500 hover:text-gray-700 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
                     </button>
                 </div>
             </div>
         </div>
-    </nav>
+    </header>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Header Section -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Page Header -->
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
             <div class="mb-6 lg:mb-0">
                 <h1 class="text-3xl font-bold text-gray-900 mb-2">Events Management</h1>
@@ -139,70 +71,64 @@
             </div>
             <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <!-- View Toggle -->
-                <div class="flex bg-gray-100 rounded-lg p-1">
-                    <button id="list-view-btn" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white rounded-md shadow-sm transition-all">
-                        <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex rounded-lg border border-gray-300 bg-white p-1">
+                    <button id="list-view-btn" class="px-4 py-2 text-sm font-medium rounded-md transition-all bg-white text-gray-900 shadow-sm">
+                        <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
                         </svg>
                         List
                     </button>
-                    <button id="calendar-view-btn" class="px-4 py-2 text-sm font-medium text-gray-500 transition-all">
-                        <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button id="calendar-view-btn" class="px-4 py-2 text-sm font-medium rounded-md transition-all text-gray-500">
+                        <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
                         Calendar
                     </button>
                 </div>
+
                 <!-- Create Event Button (Admin only) -->
-                <button id="create-event-btn" class="hidden bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-lg">
-                    <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                <button id="create-event-btn" class="hidden bg-brand-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-brand-primary/90 transition-colors shadow-sm">
+                    <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
                     Create Event
                 </button>
             </div>
         </div>
 
-        <!-- Filters & Search -->
+        <!-- Filters -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Filters & Search</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Search Events</label>
-                    <div class="relative">
-                        <input type="text" id="search-input" placeholder="Search by title, location..." 
-                               class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <svg class="absolute left-3 top-3.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                    </div>
+                    <label for="search-input" class="block text-sm font-medium text-gray-700 mb-2">Search Events</label>
+                    <input type="text" id="search-input" placeholder="Search by title, description, or location..." 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                    <select id="status-filter" class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label for="status-filter" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                    <select id="status-filter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
                         <option value="all">All Events</option>
                         <option value="upcoming">Upcoming</option>
                         <option value="past">Past Events</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
-                    <select id="sort-filter" class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label for="sort-filter" class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+                    <select id="sort-filter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
                         <option value="date">Date</option>
                         <option value="title">Title</option>
+                        <option value="location">Location</option>
                         <option value="capacity">Capacity</option>
-                        <option value="registered_count">Popularity</option>
                     </select>
                 </div>
                 <div class="flex items-end">
-                    <button id="clear-filters-btn" class="w-full px-4 py-3 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                        Clear All
+                    <button id="clear-filters-btn" class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+                        Clear Filters
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Content Views -->
         <!-- List View -->
         <div id="list-view">
             <!-- Loading State -->
@@ -218,12 +144,14 @@
 
             <!-- No Events State -->
             <div id="no-events" class="hidden text-center py-20">
-                <svg class="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
+                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
                 <h3 class="text-xl font-semibold text-gray-900 mb-2">No events found</h3>
                 <p class="text-gray-500 mb-6">Try adjusting your filters or search terms.</p>
-                <button id="create-first-event-btn" class="hidden bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                <button id="create-first-event-btn" class="hidden bg-brand-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-brand-primary/90 transition-colors">
                     Create Your First Event
                 </button>
             </div>
@@ -231,33 +159,31 @@
             <!-- Pagination -->
             <div id="pagination" class="hidden mt-8 flex items-center justify-between border-t border-gray-200 pt-6">
                 <div class="flex-1 flex justify-between sm:hidden">
-                    <button id="prev-mobile" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button id="prev-mobile" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                         Previous
                     </button>
-                    <button id="next-mobile" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button id="next-mobile" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                         Next
                     </button>
                 </div>
                 <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                     <div>
                         <p class="text-sm text-gray-700">
-                            Showing <span id="showing-from" class="font-medium">1</span> to <span id="showing-to" class="font-medium">10</span> of <span id="total-events" class="font-medium">0</span> events
+                            Showing <span id="showing-from" class="font-medium">1</span> to <span id="showing-to" class="font-medium">10</span> of <span id="total-events" class="font-medium">0</span> results
                         </p>
                     </div>
-                    <div>
-                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                            <button id="prev-desktop" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                                </svg>
-                            </button>
-                            <div id="page-numbers" class="flex"></div>
-                            <button id="next-desktop" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                            </button>
-                        </nav>
+                    <div class="flex items-center space-x-1">
+                        <button id="prev-desktop" class="relative inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-l-md text-gray-500 bg-white hover:bg-gray-50">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                        </button>
+                        <div id="page-numbers" class="flex"></div>
+                        <button id="next-desktop" class="relative inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-r-md text-gray-500 bg-white hover:bg-gray-50">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -266,137 +192,143 @@
         <!-- Calendar View -->
         <div id="calendar-view" class="hidden">
             <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                <!-- Calendar Header -->
                 <div class="flex items-center justify-between p-6 border-b border-gray-200">
                     <h2 id="calendar-month" class="text-xl font-semibold text-gray-900"></h2>
-                    <div class="flex items-center gap-3">
-                        <button id="today-btn" class="px-4 py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors">
+                    <div class="flex items-center space-x-2">
+                        <button id="prev-month" class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                        </button>
+                        <button id="today-btn" class="px-4 py-2 text-sm font-medium text-brand-primary border border-brand-primary rounded-lg hover:bg-brand-primary hover:text-white transition-colors">
                             Today
                         </button>
-                        <div class="flex items-center gap-1">
-                            <button id="prev-month" class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                                </svg>
-                            </button>
-                            <button id="next-month" class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                            </button>
-                        </div>
+                        <button id="next-month" class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </button>
                     </div>
                 </div>
-                <div class="grid grid-cols-7 gap-0">
-                    <div class="p-4 text-center text-sm font-semibold text-gray-700 border-b border-gray-200 bg-gray-50">Sun</div>
-                    <div class="p-4 text-center text-sm font-semibold text-gray-700 border-b border-gray-200 bg-gray-50">Mon</div>
-                    <div class="p-4 text-center text-sm font-semibold text-gray-700 border-b border-gray-200 bg-gray-50">Tue</div>
-                    <div class="p-4 text-center text-sm font-semibold text-gray-700 border-b border-gray-200 bg-gray-50">Wed</div>
-                    <div class="p-4 text-center text-sm font-semibold text-gray-700 border-b border-gray-200 bg-gray-50">Thu</div>
-                    <div class="p-4 text-center text-sm font-semibold text-gray-700 border-b border-gray-200 bg-gray-50">Fri</div>
-                    <div class="p-4 text-center text-sm font-semibold text-gray-700 border-b border-gray-200 bg-gray-50">Sat</div>
+
+                <!-- Calendar Grid -->
+                <div class="p-6">
+                    <!-- Days of Week Header -->
+                    <div class="grid grid-cols-7 gap-1 mb-4">
+                        <div class="p-3 text-center text-sm font-medium text-gray-500">Sun</div>
+                        <div class="p-3 text-center text-sm font-medium text-gray-500">Mon</div>
+                        <div class="p-3 text-center text-sm font-medium text-gray-500">Tue</div>
+                        <div class="p-3 text-center text-sm font-medium text-gray-500">Wed</div>
+                        <div class="p-3 text-center text-sm font-medium text-gray-500">Thu</div>
+                        <div class="p-3 text-center text-sm font-medium text-gray-500">Fri</div>
+                        <div class="p-3 text-center text-sm font-medium text-gray-500">Sat</div>
+                    </div>
+
+                    <!-- Calendar Days -->
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
                 </div>
-                <div id="calendar-grid" class="grid grid-cols-7 gap-0"></div>
             </div>
         </div>
-    </div>
+    </main>
 
-    <!-- Floating Action Button (Mobile) -->
-    <button id="floating-create-btn" class="hidden lg:hidden floating-action-btn bg-blue-600 text-white p-4 rounded-full hover:bg-blue-700 transition-all shadow-lg">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+    <!-- Floating Create Button (Mobile) -->
+    <button id="floating-create-btn" class="hidden fixed bottom-6 right-6 w-14 h-14 bg-brand-primary text-white rounded-full shadow-lg hover:bg-brand-primary/90 transition-all hover:scale-105 z-30">
+        <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
         </svg>
     </button>
 
     <!-- Event Details Modal -->
     <div id="event-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 transition-opacity modal-backdrop" onclick="closeEventModal()"></div>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-                <div class="bg-white px-6 pt-6 pb-4">
-                    <div class="flex items-start justify-between mb-4">
-                        <h3 id="modal-title" class="text-xl font-semibold text-gray-900"></h3>
-                        <button onclick="closeEventModal()" class="text-gray-400 hover:text-gray-600 rounded-lg p-1 hover:bg-gray-100">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
-                    </div>
-                    <div id="modal-content" class="space-y-4"></div>
+            <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onclick="closeEventModal()"></div>
+
+            <div class="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 id="modal-title" class="text-2xl font-bold text-gray-900"></h3>
+                    <button onclick="closeEventModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
                 </div>
-                <div class="bg-gray-50 px-6 py-4 flex flex-col sm:flex-row gap-3 sm:justify-end">
-                    <div id="modal-actions" class="flex flex-col sm:flex-row gap-3"></div>
-                </div>
+
+                <div id="modal-content" class="mb-6"></div>
+
+                <div id="modal-actions" class="flex flex-wrap gap-3 justify-end border-t border-gray-200 pt-6"></div>
             </div>
         </div>
     </div>
 
-    <!-- Event Form Modal -->
+    <!-- Create/Edit Event Modal -->
     <div id="event-form-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 transition-opacity modal-backdrop" onclick="closeEventFormModal()"></div>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
-                <form id="event-form" class="space-y-0">
-                    <div class="bg-white px-6 pt-6 pb-4">
-                        <div class="flex items-center justify-between mb-6">
-                            <h3 id="form-modal-title" class="text-xl font-semibold text-gray-900">Create New Event</h3>
-                            <button type="button" onclick="closeEventFormModal()" class="text-gray-400 hover:text-gray-600 rounded-lg p-1 hover:bg-gray-100">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
+            <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onclick="closeEventFormModal()"></div>
+
+            <div class="inline-block w-full max-w-lg p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 id="form-modal-title" class="text-2xl font-bold text-gray-900">Create New Event</h3>
+                    <button onclick="closeEventFormModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <form id="event-form" class="space-y-4">
+                    <div>
+                        <label for="event-title" class="block text-sm font-medium text-gray-700 mb-2">Event Title *</label>
+                        <input type="text" id="event-title" name="title" required 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
+                    </div>
+
+                    <div>
+                        <label for="event-description" class="block text-sm font-medium text-gray-700 mb-2">Description *</label>
+                        <textarea id="event-description" name="description" rows="3" required 
+                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="event-date" class="block text-sm font-medium text-gray-700 mb-2">Date *</label>
+                            <input type="date" id="event-date" name="date" required 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
                         </div>
-
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <div class="lg:col-span-2">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Event Title *</label>
-                                <input type="text" id="event-title" required
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                       placeholder="Enter event title">
-                            </div>
-
-                            <div class="lg:col-span-2">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Description *</label>
-                                <textarea id="event-description" rows="4" required
-                                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                          placeholder="Describe your event..."></textarea>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Date *</label>
-                                <input type="date" id="event-date" required
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Time *</label>
-                                <input type="time" id="event-time" required
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Location *</label>
-                                <input type="text" id="event-location" required
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                       placeholder="Event location">
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Capacity *</label>
-                                <input type="number" id="event-capacity" min="1" required
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                       placeholder="Maximum attendees">
-                            </div>
+                        <div>
+                            <label for="event-time" class="block text-sm font-medium text-gray-700 mb-2">Time *</label>
+                            <input type="time" id="event-time" name="time" required 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
                         </div>
                     </div>
-                    <div class="bg-gray-50 px-6 py-4 flex flex-col sm:flex-row gap-3 sm:justify-end">
+
+                    <div>
+                        <label for="event-location" class="block text-sm font-medium text-gray-700 mb-2">Location *</label>
+                        <input type="text" id="event-location" name="location" required 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
+                    </div>
+
+                    <div>
+                        <label for="event-capacity" class="block text-sm font-medium text-gray-700 mb-2">Capacity</label>
+                        <input type="number" id="event-capacity" name="capacity" min="1" placeholder="50" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
+                    </div>
+
+                    <div class="flex gap-3 justify-end pt-6 border-t border-gray-200">
                         <button type="button" onclick="closeEventFormModal()" 
                                 class="px-6 py-3 border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50 font-medium transition-colors">
                             Cancel
                         </button>
                         <button type="submit" id="save-event-btn" 
-                                class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors flex items-center justify-center">
+                                class="px-6 py-3 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 font-medium transition-colors">
                             <span class="save-text">Create Event</span>
-                            <div class="hidden save-loading loading-spinner ml-2"></div>
+                            <span class="save-loading hidden">
+                                <svg class="animate-spin w-4 h-4 inline mr-2" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Saving...
+                            </span>
                         </button>
                     </div>
                 </form>
@@ -404,9 +336,7 @@
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="/js/config.js"></script>
-    <script src="/js/auth.js"></script>
-    <script src="/js/events.js"></script>
+    <script src="./js/config.js"></script>
+    <script src="./js/events.js"></script>
 </body>
 </html>

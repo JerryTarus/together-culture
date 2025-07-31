@@ -3,14 +3,14 @@ const mysql = require('mysql2/promise');
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// Determine database type from environment or URL
+// Determine database type from environment
 const isDatabaseUrl = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres');
 const isMySQL = !isDatabaseUrl;
 
 let pool;
 
 if (isMySQL) {
-    // MySQL configuration for Replit
+    // MySQL configuration
     const dbConfig = {
         host: process.env.DB_HOST || 'localhost',
         user: process.env.DB_USER || 'root',
@@ -20,18 +20,13 @@ if (isMySQL) {
         connectionLimit: 10,
         queueLimit: 0,
         charset: 'utf8mb4',
-        connectTimeout: 60000,
-        acquireTimeout: 60000,
-        timeout: 60000,
-        reconnect: true,
-        maxPreparedStatements: 0
+        connectTimeout: 60000
     };
     
-    // Create MySQL connection pool
     pool = mysql.createPool(dbConfig);
     console.log('📊 Using MySQL database configuration');
 } else {
-    // PostgreSQL configuration
+    // PostgreSQL configuration for Replit
     pool = new Pool({
         connectionString: process.env.DATABASE_URL,
         max: 10,
@@ -39,30 +34,28 @@ if (isMySQL) {
     console.log('📊 Using PostgreSQL database configuration');
 }
 
-// Test database connection on startup
+// Test database connection
 const testConnection = async () => {
     try {
         if (isMySQL) {
             const connection = await pool.getConnection();
             console.log('✅ MySQL Database connected successfully');
-            console.log(`📊 Connected to database: ${process.env.DB_NAME || 'together_culture'} on ${process.env.DB_HOST || 'localhost'}`);
+            console.log(`📊 Connected to database: ${process.env.DB_NAME || 'together_culture_crm'} on ${process.env.DB_HOST || 'localhost'}`);
             connection.release();
         } else {
             const client = await pool.connect();
             console.log('✅ PostgreSQL Database connected successfully');
-            console.log(`📊 Connected to PostgreSQL database`);
             client.release();
         }
         return true;
     } catch (error) {
         console.error('❌ Database connection failed:', error.message);
         console.error('Please check your database configuration in .env file');
-        console.error('For Replit, consider using the built-in PostgreSQL database');
         return false;
     }
 };
 
-// Enhanced query method with error handling for both MySQL and PostgreSQL
+// Enhanced query method for both databases
 const query = async (sql, params = []) => {
     try {
         if (isMySQL) {
@@ -73,7 +66,7 @@ const query = async (sql, params = []) => {
             let pgSql = sql;
             let pgParams = params;
             
-            // Convert ? placeholders to $1, $2, etc. for PostgreSQL
+            // Convert ? placeholders to $1, $2, etc.
             let paramIndex = 1;
             pgSql = sql.replace(/\?/g, () => `$${paramIndex++}`);
             
@@ -116,7 +109,6 @@ process.on('SIGTERM', async () => {
     process.exit(0);
 });
 
-// Export enhanced pool with custom query method
 module.exports = {
     ...pool,
     query,

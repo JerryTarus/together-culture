@@ -355,8 +355,75 @@ document.addEventListener('DOMContentLoaded', async () => {
         return colors[type] || colors.default;
     }
 
+    // Check authentication and user role
+    async function checkAuth() {
+        try {
+            console.log('Checking authentication...');
+            const response = await fetch(`${CONFIG.API_BASE_URL}/api/auth/me`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+
+            console.log('Auth response status:', response.status);
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    console.log('User not authenticated, redirecting to login');
+                    window.location.href = '/login.html';
+                    return false;
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('User authenticated:', data);
+
+            // Check if user is admin (should not be on member dashboard)
+            if (data.role === 'admin') {
+                console.log('Admin user detected, redirecting to admin dashboard');
+                window.location.href = '/admin_dashboard.html';
+                return false;
+            }
+
+            // Ensure user is a member
+            if (data.role !== 'member') {
+                console.log('Invalid role for member dashboard:', data.role);
+                window.location.href = '/login.html';
+                return false;
+            }
+
+            updateUserInfo(data);
+            console.log('Member dashboard loaded successfully for user:', data.email);
+            return true;
+
+        } catch (error) {
+            console.error('Authentication error:', error);
+            window.location.href = '/login.html';
+            return false;
+        }
+    }
+
     // Initialize dashboard
-    await loadDashboard();
+    // Initialize page
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('Member dashboard page loaded');
+
+    try {
+        const isAuthenticated = await checkAuth();
+        if (isAuthenticated) {
+            await loadDashboard();
+            await loadDashboardStats();
+            await loadUpcomingEvents();
+            await loadRecentActivity();
+            console.log('Member dashboard initialization complete');
+        }
+    } catch (error) {
+        console.error('Error initializing member dashboard:', error);
+        showToast('Failed to initialize dashboard', 'error');
+        // Don't redirect here as checkAuth will handle it
+    }
+});
+
 
     // Add event listener for the logout button
     logoutButton.addEventListener('click', async () => {

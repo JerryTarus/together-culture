@@ -471,6 +471,13 @@ function closeEventModal() {
 async function handleEventSubmit(e) {
     e.preventDefault();
 
+    const saveBtn = document.getElementById('saveEventBtn');
+    const originalText = saveBtn.textContent;
+    
+    // Show loading state
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
     const formData = {
         title: document.getElementById('eventTitle').value.trim(),
         description: document.getElementById('eventDescription').value.trim(),
@@ -504,7 +511,7 @@ async function handleEventSubmit(e) {
         const data = await response.json();
 
         if (data.success) {
-            showMessage(editingEventId ? 'Event updated successfully' : 'Event created successfully', 'success');
+            showMessage(editingEventId ? 'Event updated successfully!' : 'Event created successfully!', 'success');
             closeEventModal();
             loadEvents();
         } else {
@@ -514,6 +521,10 @@ async function handleEventSubmit(e) {
     } catch (error) {
         console.error('Error saving event:', error);
         showMessage('Failed to save event. Please try again.', 'error');
+    } finally {
+        // Reset button state
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalText;
     }
 }
 
